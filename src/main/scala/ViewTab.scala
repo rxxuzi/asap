@@ -1,21 +1,19 @@
 import content.RemoteFile
 import content.Tree.addPathToTree
-import javafx.scene.layout.{BorderPane, HBox, Priority, VBox}
-import javafx.scene.control.{Button, Label, ScrollPane, SplitPane, TextArea, TreeItem, TreeView}
-import javafx.scene.image.{Image, ImageView}
+import javafx.application.Platform
 import javafx.geometry.{Insets, Orientation}
+import javafx.scene.Node
+import javafx.scene.control.cell.TextFieldTreeCell
+import javafx.scene.control.*
+import javafx.scene.image.{Image, ImageView}
+import javafx.scene.layout.{BorderPane, HBox}
+import javafx.scene.text.Text
+import javafx.util.StringConverter
 import ssh.SSHManager
 
-import java.io.{ByteArrayInputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import scala.jdk.CollectionConverters.*
-import javafx.application.Platform
-
-import scala.util.{Failure, Success, Try}
-import javafx.scene.control.cell.TextFieldTreeCell
-import javafx.util.StringConverter
-import javafx.scene.Node
-import javafx.scene.text.Text
+import scala.util.Try
 
 class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
   private val statusArea = new TextArea()
@@ -26,16 +24,22 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
   fileTreeView.setShowRoot(false)
   fileTreeView.setCellFactory(_ => new TextFieldTreeCell[RemoteFile](new StringConverter[RemoteFile]() {
     override def toString(rf: RemoteFile): String = rf.name
-    override def fromString(string: String): RemoteFile = null // Not used for this example
+    override def fromString(string: String): RemoteFile = null
   }))
 
   private val contentArea = new ScrollPane()
   contentArea.setFitToWidth(true)
   contentArea.setFitToHeight(true)
 
+  private val searchField = new TextField()
+  searchField.setPromptText("Search files...")
+
   def getContent: BorderPane = {
     val refreshButton = new Button("Refresh")
     refreshButton.setOnAction(_ => updateFileTree())
+
+    val searchButton = new Button("Search")
+    searchButton.setOnAction(_ => performSearch())
 
     fileTreeView.getSelectionModel.selectedItemProperty().addListener((_, _, newValue) => {
       if (newValue != null && !newValue.getValue.isDirectory) {
@@ -50,7 +54,7 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
 
     val topPane = new HBox(10)
     topPane.setPadding(new Insets(10))
-    topPane.getChildren.add(refreshButton)
+    topPane.getChildren.addAll(refreshButton, searchField, searchButton)
 
     val content = new BorderPane()
     content.setTop(topPane)
@@ -60,6 +64,44 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
     BorderPane.setMargin(statusArea, new Insets(10, 0, 0, 0))
 
     content
+  }
+
+  private def performSearch(): Unit = {
+    val searchTerm = searchField.getText.trim.toLowerCase
+    if (searchTerm.isEmpty) {
+      statusArea.appendText("Please enter a search term.\n")
+      return
+    }
+
+    if (sshManager.isConnected) {
+      sshManager.withSSH { ssh =>
+        Try {
+          val homeDir = ssh.exec("echo $HOME").trim
+          val searchCommand = s"find $homeDir -iname '*$searchTerm*'"
+          val searchResults = ssh.exec(searchCommand).split("\n").filter(_.nonEmpty)
+
+          Platform.runLater(() => {
+            val rootItem = new TreeItem[RemoteFile](RemoteFile("Search Results", homeDir, isDirectory = true))
+            searchResults.foreach { path =>
+              val relativePath = path.replace(homeDir, "").stripPrefix("/")
+              addPathToTree(rootItem, relativePath, path, homeDir)
+            }
+            fileTreeView.setRoot(rootItem)
+            statusArea.appendText(s"Found ${searchResults.length} results for '$searchTerm'\n")
+          })
+        }.recover {
+          case ex => Platform.runLater(() => {
+            statusArea.appendText(s"Search failed: ${ex.getMessage}\n")
+          })
+        }
+      }.recover {
+        case ex => Platform.runLater(() => {
+          statusArea.appendText(s"SSH operation failed: ${ex.getMessage}\n")
+        })
+      }
+    } else {
+      statusArea.appendText("Not connected. Please connect to SSH first.\n")
+    }
   }
 
   private def viewFileContent(file: RemoteFile): Unit = {
