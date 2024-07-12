@@ -1,23 +1,23 @@
 import content.RemoteFile
 import content.Tree.addPathToTree
-import javafx.scene.layout.{BorderPane, HBox, Priority, VBox}
-import javafx.scene.control.{Button, Label, ScrollPane, SplitPane, TextArea, TreeItem, TreeView, TextField, ToggleGroup, RadioButton}
-import javafx.scene.image.{Image, ImageView}
+import global.{Config, IO}
+import javafx.application.Platform
 import javafx.geometry.{Insets, Orientation}
+import javafx.scene.Node
+import javafx.scene.control.cell.TextFieldTreeCell
+import javafx.scene.control.*
+import javafx.scene.image.{Image, ImageView}
+import javafx.scene.layout.{BorderPane, HBox}
+import javafx.scene.text.Text
+import javafx.util.StringConverter
 import ssh.SSHManager
 
-import java.io.{ByteArrayInputStream, File}
 import java.nio.file.{Files, Paths}
-import scala.jdk.CollectionConverters.*
-import javafx.application.Platform
-
-import scala.util.{Failure, Success, Try}
-import javafx.scene.control.cell.TextFieldTreeCell
-import javafx.util.StringConverter
-import javafx.scene.Node
-import javafx.scene.text.Text
-import scala.concurrent.{Future, ExecutionContext}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters.*
+import scala.util.Try
+
 
 class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
   private val statusArea = new TextArea()
@@ -45,6 +45,9 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
   hideHiddenRadio.setToggleGroup(showHiddenToggleGroup)
   hideHiddenRadio.setSelected(true)
 
+  private val saveButton = new Button("Save")
+  saveButton.setDisable(true)
+
   def getContent: BorderPane = {
     val refreshButton = new Button("Refresh")
     refreshButton.setOnAction(_ => updateFileTreeAsync())
@@ -52,9 +55,14 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
     val searchButton = new Button("Search")
     searchButton.setOnAction(_ => performSearchAsync())
 
+    saveButton.setOnAction(_ => downloadSelectedFile())
+
     fileTreeView.getSelectionModel.selectedItemProperty().addListener((_, _, newValue) => {
       if (newValue != null && !newValue.getValue.isDirectory) {
         viewFileContent(newValue.getValue)
+        saveButton.setDisable(false)
+      } else {
+        saveButton.setDisable(true)
       }
     })
 
@@ -65,7 +73,7 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
 
     val topPane = new HBox(10)
     topPane.setPadding(new Insets(10))
-    topPane.getChildren.addAll(refreshButton, searchField, searchButton, showHiddenRadio, hideHiddenRadio)
+    topPane.getChildren.addAll(refreshButton, searchField, searchButton, showHiddenRadio, hideHiddenRadio, saveButton)
 
     val content = new BorderPane()
     content.setTop(topPane)
@@ -75,6 +83,41 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
     BorderPane.setMargin(statusArea, new Insets(10, 0, 0, 0))
 
     content
+  }
+
+  private def downloadSelectedFile(): Unit = {
+    if (sshManager.isConnected) {
+      val selectedItem = fileTreeView.getSelectionModel.getSelectedItem
+      if (selectedItem != null && !selectedItem.getValue.isDirectory) {
+        val remoteFile = selectedItem.getValue.fullPath
+        val saveAsName = selectedItem.getValue.name
+        val localPath = Paths.get(Config.dir.downloadsDir, saveAsName).toString
+        
+        println("Target : " + remoteFile)
+        println(Config.dir.downloadsDir)
+
+        sshManager.withSSH { ssh =>
+          Try {
+            ssh.get(remoteFile, localPath)
+            Platform.runLater(() => {
+              statusArea.appendText(s"File downloaded: $remoteFile -> $localPath\n")
+            })
+          }.recover {
+            case ex => Platform.runLater(() => {
+              statusArea.appendText(s"Download failed: ${ex.getMessage}\n")
+            })
+          }
+        }.recover {
+          case ex => Platform.runLater(() => {
+            statusArea.appendText(s"SSH operation failed: ${ex.getMessage}\n")
+          })
+        }
+      } else {
+        statusArea.appendText("Please select a file to download.\n")
+      }
+    } else {
+      statusArea.appendText("Not connected. Please connect to SSH first.\n")
+    }
   }
 
   private def performSearchAsync(): Unit = {
@@ -162,6 +205,12 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
   }
 
   private def isTextFile(file: java.nio.file.Path): Boolean = {
+    val knownTextExtensions = Set(".txt", ".py", ".html", ".css", ".js", ".json", ".xml", ".md", ".scala", ".java", ".c", ".cpp", ".h", ".sh", ".bat", ".csv")
+
+    if (knownTextExtensions.exists(ext => file.getFileName.toString.toLowerCase.endsWith(ext))) {
+      return true
+    }
+
     Try {
       val bytes = Files.readAllBytes(file)
       val n = Math.min(bytes.length, 1000) // Check only first 1000 bytes
