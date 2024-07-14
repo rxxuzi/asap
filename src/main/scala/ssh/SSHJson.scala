@@ -20,7 +20,5 @@ object SSHJson {
   }
 
   def apply(path: String): SSHJson = apply(new File(path))
-//  implicit class SSHJsonOps(sshJson: SSHJson) {
-//  }
 }
 

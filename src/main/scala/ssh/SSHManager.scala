@@ -47,7 +47,7 @@ class SSHManager {
     if (isConnected) {
       s"$getUser@$getHost:$getCurrentPath"
     } else {
-      "Jingliu"
+      "ASAP"
     }
   }
 }
