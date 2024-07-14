@@ -93,9 +93,6 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
         val saveAsName = selectedItem.getValue.name
         val localPath = Paths.get(Config.dir.downloadsDir, saveAsName).toString
         
-        println("Target : " + remoteFile)
-        println(Config.dir.downloadsDir)
-
         sshManager.withSSH { ssh =>
           Try {
             ssh.get(remoteFile, localPath)

@@ -1,8 +1,7 @@
-import javafx.scene.layout.{VBox, HBox}
-import javafx.scene.control.{TextField, Button, Label, TextArea}
 import javafx.geometry.Insets
+import javafx.scene.control.{Button, Label, TextArea, TextField}
+import javafx.scene.layout.{HBox, VBox}
 import ssh.SSHManager
-import javafx.application.Platform
 
 class HomeTab(sshManager: SSHManager, updateTitle: () => Unit) {
   private val statusArea = new TextArea()

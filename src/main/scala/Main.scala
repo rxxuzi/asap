@@ -11,7 +11,7 @@ import javafx.beans.property.SimpleStringProperty
 class Main extends Application {
   private val sshManager = new SSHManager()
   private val titleProperty = new SimpleStringProperty("ASAP")
-  IO.mkdir(Config.dir.downloadsDir)
+  
 
   override def start(stage: Stage): Unit = {
     val tabPane = new TabPane()
@@ -49,18 +49,31 @@ class Main extends Application {
     stage.setScene(scene)
     stage.show()
 
-    stage.setOnCloseRequest(_ => sshManager.disconnect())
+    stage.setOnCloseRequest(_ => {
+      sshManager.disconnect()
+      exit()
+    })
   }
 
   private def updateTitle(): Unit = {
     titleProperty.set(sshManager.getTitleInfo)
   }
+
+  private def exit(): Unit = {
+    Config.gen()
+  }
 }
 
 object Main {
+  private def init(): Unit = {
+    Config.initialize()
+    IO.mkdir(Config.dir.downloadsDir)
+    if (Config.out.cache) IO.mkdir(Config.dir.cacheDir)
+    if (Config.out.dbg) IO.mkdir(Config.dir.dbgDir)
+  }
+  
   def main(args: Array[String]): Unit = {
-    val configJson = "asap.json"
-//    Config(configJson)
+    init()
     Application.launch(classOf[Main], args: _*)
   }
 }
