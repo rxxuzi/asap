@@ -7,11 +7,12 @@ import scala.util.{Try, Using}
 
 case class SshConfig(autoConnect: Boolean, configFile: String)
 case class OutConfig(cache: Boolean, log: Boolean, dbg: Boolean)
-case class DirConfig(downloadsDir: String, cacheDir: String, dbgDir: String)
+case class DirConfig(downloadsDir: String, cacheDir: String, logDir:String, dbgDir: String)
 
 class Config(
               val project: String,
               val css: Boolean,
+              val dark: Boolean,
               val ssh: SshConfig,
               val out: OutConfig,
               val dir: DirConfig
@@ -19,12 +20,14 @@ class Config(
 
 object Config {
   var configPath = "asap.json"
+  val defaultLogDir = "log"
   private lazy val instance: Config = loadConfig(configPath).getOrElse(defaultConfig)
 
   // デフォルト値の定義
   private val defaultConfig = new Config(
     project = "Asap",
     css = true,
+    dark = true,
     ssh = SshConfig(autoConnect = false, configFile = "ssh.json"),
     out = OutConfig(
       cache = false,
@@ -34,6 +37,7 @@ object Config {
     dir = DirConfig(
       downloadsDir = "downloads",
       cacheDir = "cache",
+      logDir = "log",
       dbgDir = "debug"
     )
   )
@@ -50,6 +54,7 @@ object Config {
 
   def project: String = instance.project
   def css : Boolean  = instance.css
+  def dark : Boolean = instance.dark
   def ssh: SshConfig = instance.ssh
   def out: OutConfig = instance.out
   def dir: DirConfig = instance.dir
