@@ -1,0 +1,153 @@
+/* light.css */
+
+.root {
+    -fx-background-color: #FFFFFF;
+    -fx-text-base-color: #333333;
+}
+
+.button {
+    -fx-text-fill: white;
+}
+
+.text-field {
+    -fx-background-color: #F0F0F0;
+    -fx-border-color: #AAAAFB;
+}
+
+.tab-pane {
+    -fx-background-color: #FFFFFF;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: #F0F0F0;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #AAAAFB;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-text-fill: #333333;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-text-fill: white;
+}
+
+.split-pane {
+    -fx-background-color: #FFFFFF;
+}
+
+.split-pane-divider {
+    -fx-background-color: #F0F0F0;
+}
+
+.text-area {
+    -fx-background-color: #F0F0F0;
+    -fx-border-color: #AAAAFB;
+}
+
+.text-area .content {
+    -fx-background-color: #FFFFFF;
+}
+
+.scroll-bar:vertical,
+.scroll-bar:horizontal {
+    -fx-background-color: #F0F0F0;
+}
+
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #AAAAFB;
+}
+
+.label {
+    -fx-text-fill: #333333;
+}
+
+.radio-button .radio {
+    -fx-background-color: white;
+    -fx-border-color: #AAAAFB;
+}
+
+.check-box .box {
+    -fx-background-color: white;
+    -fx-border-color: #AAAAFB;
+}
+
+.progress-bar > .track {
+    -fx-background-color: #F0F0F0;
+}
+
+.menu-bar {
+    -fx-background-color: #AAAAFB;
+}
+
+.menu-bar .label {
+    -fx-text-fill: white;
+}
+
+.menu-item {
+    -fx-background-color: white;
+}
+
+.menu-item:hover {
+    -fx-background-color: #A1F2FE;
+}
+
+.combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #AAAAFB;
+}
+
+.combo-box .arrow-button {
+    -fx-background-color: #AAAAFB;
+}
+
+.combo-box .arrow {
+    -fx-background-color: white;
+}
+
+.list-view {
+    -fx-background-color: white;
+    -fx-border-color: #AAAAFB;
+}
+
+.list-cell:even {
+    -fx-background-color: #F0F0F0;
+}
+
+.list-cell:odd {
+    -fx-background-color: white;
+}
+
+.list-cell:selected {
+    -fx-background-color: #A1F2FE;
+    -fx-text-fill: #333333;
+}
+
+.tree-view {
+    -fx-background-color: white;
+    -fx-border-color: #AAAAFB;
+}
+
+.tree-cell {
+    -fx-background-color: white;
+}
+
+.tree-cell:selected {
+    -fx-background-color: #A1F2FE;
+    -fx-text-fill: #333333;
+}
+
+.toggle-button {
+    -fx-text-fill: white;
+}
+
+.toggle-button:selected {
+    -fx-text-fill: white;
+}
+
+.scroll-pane {
+    -fx-background-color: #E0C0E0;
+}

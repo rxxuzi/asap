@@ -1,0 +1,174 @@
+/* dark.css */
+
+.root {
+    -fx-background-color: #2C2C2C;
+    -fx-text-base-color: #E0E0E0;
+}
+
+.button {
+    -fx-text-fill: #2C2C2C;
+}
+
+.text-field {
+    -fx-background-color: #3D3D3D;
+    -fx-border-color: #AAAAFB;
+    -fx-text-fill: #E0E0E0;
+}
+
+.tab-pane {
+    -fx-background-color: #2C2C2C;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: #3D3D3D;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #AAAAFB;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-text-fill: #E0E0E0;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-text-fill: #2C2C2C;
+}
+
+.split-pane {
+    -fx-background-color: #2C2C2C;
+}
+
+.split-pane-divider {
+    -fx-background-color: #3D3D3D;
+}
+
+.text-area {
+    -fx-background-color: #3D3D3D;
+    -fx-border-color: #AAAAFB;
+    -fx-text-fill: #E0E0E0;
+}
+
+.text-area .content {
+    -fx-background-color: #3D3D3D;
+}
+
+.scroll-bar:vertical,
+.scroll-bar:horizontal {
+    -fx-background-color: #3D3D3D;
+}
+
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #AAAAFB;
+}
+
+.label {
+    -fx-text-fill: #E0E0E0;
+}
+
+.radio-button .radio {
+    -fx-background-color: #3D3D3D;
+    -fx-border-color: #AAAAFB;
+}
+
+.check-box .box {
+    -fx-background-color: #3D3D3D;
+    -fx-border-color: #AAAAFB;
+}
+
+.progress-bar > .track {
+    -fx-background-color: #3D3D3D;
+}
+
+.menu-bar {
+    -fx-background-color: #3D3D3D;
+}
+
+.menu-bar .label {
+    -fx-text-fill: #E0E0E0;
+}
+
+.menu-item {
+    -fx-background-color: #2C2C2C;
+}
+
+.menu-item:hover {
+    -fx-background-color: #A1F2FE;
+}
+
+.menu-item .label {
+    -fx-text-fill: #E0E0E0;
+}
+
+.combo-box {
+    -fx-background-color: #3D3D3D;
+    -fx-border-color: #AAAAFB;
+}
+
+.combo-box .arrow-button {
+    -fx-background-color: #AAAAFB;
+}
+
+.combo-box .arrow {
+    -fx-background-color: #2C2C2C;
+}
+
+.list-view {
+    -fx-background-color: #3D3D3D;
+    -fx-border-color: #AAAAFB;
+}
+
+.list-cell {
+    -fx-background-color: #3D3D3D;
+    -fx-text-fill: #E0E0E0;
+}
+
+.list-cell:even {
+    -fx-background-color: #333333;
+}
+
+.list-cell:odd {
+    -fx-background-color: #3D3D3D;
+}
+
+.list-cell:selected {
+    -fx-background-color: #A1F2FE;
+    -fx-text-fill: #2C2C2C;
+}
+
+.tree-view {
+    -fx-background-color: #3D3D3D;
+    -fx-border-color: #AAAAFB;
+}
+
+.tree-cell {
+    -fx-background-color: #3D3D3D;
+    -fx-text-fill: #E0E0E0;
+}
+
+.tree-cell:selected {
+    -fx-background-color: #A1F2FE;
+    -fx-text-fill: #2C2C2C;
+}
+
+.toggle-button {
+    -fx-text-fill: #2C2C2C;
+}
+
+.toggle-button:selected {
+    -fx-text-fill: #2C2C2C;
+}
+
+
+.content-area {
+    -fx-background-color: #232323;
+}
+
+.scroll-pane {
+    -fx-text-fill: #E0E0E0;
+}
+
+.scroll-pane {
+    -fx-background-color: #232323;
+}
