@@ -1,5 +1,5 @@
 import content.Status
-import global.{Config, IO}
+import global.{Config, IO, Log}
 import javafx.application.Application
 import javafx.beans.property.SimpleStringProperty
 import javafx.geometry.Orientation
@@ -8,44 +8,32 @@ import javafx.scene.control.{SplitPane, Tab, TabPane, TextArea}
 import javafx.scene.layout.{BorderPane, VBox}
 import javafx.stage.Stage
 import ssh.SSHManager
+import style.*
+import javafx.scene.image.Image
 
 class Main extends Application {
   private val sshManager = new SSHManager()
   private val titleProperty = new SimpleStringProperty("ASAP")
+  private var stage: Stage = _
 
   if (Config.ssh.autoConnect) {
     sshManager.connect(Config.ssh.configFile) match {
       case scala.util.Success(info) =>
         println(s"Connected: $info\n")
-        updateTitle()
       case scala.util.Failure(ex) => println(s"Connection failed: ${ex.getMessage}\n")
     }
   }
 
-  override def start(stage: Stage): Unit = {
-    val tabPane = new TabPane()
+  override def start(primaryStage: Stage): Unit = {
+    stage = primaryStage
+    val scene = new Scene(new BorderPane(), 900, 600)
+    Style.updateSceneStyle(scene)
 
-    val homeTab = new Tab("Home")
-    homeTab.setClosable(false)
-    homeTab.setContent(new HomeTab(sshManager).getContent)
-
-    val sendTab = new Tab("Send")
-    sendTab.setClosable(false)
-    sendTab.setContent(new SendTab(sshManager).getContent)
-
-    val execTab = new Tab("Exec")
-    execTab.setClosable(false)
-    execTab.setContent(new ExecTab(sshManager).getContent)
-
-    val viewTab = new Tab("View")
-    viewTab.setClosable(false)
-    viewTab.setContent(new ViewTab(sshManager).getContent)
-
-    tabPane.getTabs.addAll(homeTab, sendTab, viewTab, execTab)
+    val tabPane = createTabPane(scene)
 
     val borderPane = new BorderPane()
 
-    val topBox = new VBox(10,  tabPane)
+    val topBox = new VBox(10, tabPane)
 
     val statusArea = new TextArea()
     Status.initialize(statusArea)
@@ -57,19 +45,40 @@ class Main extends Application {
 
     borderPane.setCenter(splitPane)
 
-    val scene = new Scene(borderPane, 800, 600)
-    stage.setTitle("ASAP")
-    stage.setScene(scene)
-    stage.show()
+    scene.setRoot(borderPane)
 
+    stage.setScene(scene)
+    show()
+  }
+
+  private def show(): Unit = {
+    stage.setTitle("ASAP")
     stage.setOnCloseRequest(_ => {
       sshManager.disconnect()
       exit()
     })
+
+    stage.getIcons.add(new Image(getClass.getResourceAsStream("png/icon.png")))
+    stage.show()
   }
 
-  private def updateTitle(): Unit = {
-    titleProperty.set(sshManager.getTitleInfo)
+  private def createTabPane(scene: Scene): TabPane = {
+    val tabPane = new TabPane()
+
+    val homeTab = createTab("Home", new HomeTab(sshManager, scene).getContent)
+    val sendTab = createTab("Send", new SendTab(sshManager).getContent)
+    val viewTab = createTab("View", new ViewTab(sshManager).getContent)
+    val execTab = createTab("Exec", new ExecTab(sshManager).getContent)
+
+    tabPane.getTabs.addAll(homeTab, sendTab, viewTab, execTab)
+    tabPane
+  }
+
+  private def createTab(name: String, content: javafx.scene.Node): Tab = {
+    val tab = new Tab(name)
+    tab.setClosable(false)
+    tab.setContent(content)
+    tab
   }
 
   private def exit(): Unit = {
@@ -83,6 +92,11 @@ object Main {
     IO.mkdir(Config.dir.downloadsDir)
     if (Config.out.cache) IO.mkdir(Config.dir.cacheDir)
     if (Config.out.dbg) IO.mkdir(Config.dir.dbgDir)
+    if (Config.out.log) {
+      IO.mkdir(Config.dir.logDir)
+      Log.init(Config.dir.logDir)
+      Log.append(Log.Info, "start")
+    }
   }
 
   def main(args: Array[String]): Unit = {
