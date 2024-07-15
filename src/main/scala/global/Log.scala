@@ -26,17 +26,16 @@ object Log {
   }
 
   def append(logType: Log, message: String): Unit = {
-    if (logFilePath == null) {
-      init(Config.defaultLogDir)
-    }
-    Future {
-      val writer = new BufferedWriter(new FileWriter(logFilePath, true))
-      try {
-        val timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
-        writer.write(s"[$timeStamp] [$logType] $message")
-        writer.newLine()
-      } finally {
-        writer.close()
+    if (Config.out.log && logFilePath == null) {
+      Future {
+        val writer = new BufferedWriter(new FileWriter(logFilePath, true))
+        try {
+          val timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
+          writer.write(s"[$timeStamp] [$logType] $message")
+          writer.newLine()
+        } finally {
+          writer.close()
+        }
       }
     }
   }
