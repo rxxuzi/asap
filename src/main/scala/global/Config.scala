@@ -11,6 +11,7 @@ case class DirConfig(downloadsDir: String, cacheDir: String, dbgDir: String)
 
 class Config(
               val project: String,
+              val css: Boolean,
               val ssh: SshConfig,
               val out: OutConfig,
               val dir: DirConfig
@@ -23,6 +24,7 @@ object Config {
   // デフォルト値の定義
   private val defaultConfig = new Config(
     project = "Asap",
+    css = true,
     ssh = SshConfig(autoConnect = false, configFile = "ssh.json"),
     out = OutConfig(
       cache = false,
@@ -47,6 +49,7 @@ object Config {
   }
 
   def project: String = instance.project
+  def css : Boolean  = instance.css
   def ssh: SshConfig = instance.ssh
   def out: OutConfig = instance.out
   def dir: DirConfig = instance.dir
