@@ -24,7 +24,7 @@ import scala.util.Using
  * @param user The username for authentication.
  * @param password The password for authentication.
  */
-class SSH(val host: String, val port: Int, val user: String, val password: String) extends AutoCloseable {
+class SSH(val host: String, val port: Int, val user: String, val password: String) extends SSHTrait {
   val userHost: String = s"$user@$host"
   private var session: Option[ClientSession] = None
   private val client: SshClient = SshClient.setUpDefaultClient()
@@ -39,7 +39,7 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
    * This method establishes the connection, authenticates the user,
    * and sets the initial working directory.
    */
-  def open(): Unit = {
+  override def open(): Unit = {
     client.start()
     val sess = client.connect(user, host, port).verify(5000).getSession
     sess.addPasswordIdentity(password)
