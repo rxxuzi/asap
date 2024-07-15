@@ -2,8 +2,9 @@ import javafx.scene.layout.{VBox, HBox}
 import javafx.scene.control.{TextField, Button, TextArea}
 import javafx.geometry.Insets
 import ssh.SSHManager
+import content.Status
 
-class ExecTab(sshManager: SSHManager, updateTitle: () => Unit) {
+class ExecTab(sshManager: SSHManager) {
   private val commandField = new TextField()
   commandField.setPromptText("Enter command")
 
@@ -33,23 +34,22 @@ class ExecTab(sshManager: SSHManager, updateTitle: () => Unit) {
     if (command.nonEmpty) {
       if (sshManager.isConnected) {
         sshManager.withSSH { ssh =>
-          outputArea.appendText(s"> $command\n")
+          outputArea.appendText(s"> $command")
           val output = ssh.exec(command)
-          outputArea.appendText(s"$output\n")
+          outputArea.appendText(s"$output")
 
           if (command.trim.startsWith("cd ")) {
             val newPath = ssh.exec("pwd").trim
             sshManager.updatePath(newPath)
-            updateTitle()
           }
         }.recover {
-          case ex => outputArea.appendText(s"Execution failed: ${ex.getMessage}\n")
+          case ex => outputArea.appendText(s"Execution failed: ${ex.getMessage}")
         }
       } else {
-        outputArea.appendText("Not connected. Please connect to SSH first.\n")
+        outputArea.appendText("Not connected. Please connect to SSH first.")
       }
     } else {
-      outputArea.appendText("Please enter a command.\n")
+      outputArea.appendText("Please enter a command.")
     }
     commandField.clear()
   }

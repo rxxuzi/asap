@@ -7,20 +7,18 @@ import javafx.scene.layout.{HBox, Priority, VBox}
 import javafx.stage.FileChooser
 import javafx.util.StringConverter
 import ssh.SSHManager
+import content.Status
 
 import java.io.File
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
-class SendTab(sshManager: SSHManager, updateTitle: () => Unit) {
-  private val statusArea = new TextArea()
-  statusArea.setEditable(false)
-  statusArea.setPrefRowCount(10)
-
+class SendTab(sshManager: SSHManager) {
   private val fileTreeView = new TreeView[RemoteFile]()
   fileTreeView.setShowRoot(false)
   fileTreeView.setCellFactory(_ => new TextFieldTreeCell[RemoteFile](new StringConverter[RemoteFile]() {
     override def toString(rf: RemoteFile): String = rf.name
+
     override def fromString(string: String): RemoteFile = null // Not used for this example
   }))
 
@@ -61,16 +59,16 @@ class SendTab(sshManager: SSHManager, updateTitle: () => Unit) {
           sshManager.withSSH { ssh =>
             val remoteFilePath = s"$remotePath/${localFile.getName}"
             ssh.send(localFile, remoteFilePath)
-            statusArea.appendText(s"File sent: ${localFile.getAbsolutePath} -> $remoteFilePath\n")
+            Status.appendText(s"File sent: ${localFile.getAbsolutePath} -> $remoteFilePath")
             updateFileTree()
           }.recover {
-            case ex => statusArea.appendText(s"Send failed: ${ex.getMessage}\n")
+            case ex => Status.appendText(s"Send failed: ${ex.getMessage}")
           }
         } else {
-          statusArea.appendText("Please select a valid local file and remote directory.\n")
+          Status.appendText("Please select a valid local file and remote directory.")
         }
       } else {
-        statusArea.appendText("Not connected. Please connect to SSH first.\n")
+        Status.appendText("Not connected. Please connect to SSH first.")
       }
     })
 
@@ -105,17 +103,10 @@ class SendTab(sshManager: SSHManager, updateTitle: () => Unit) {
     )
     VBox.setVgrow(fileTreeView, Priority.ALWAYS)
 
-    val rightPane = new VBox(10)
-    rightPane.setPadding(new Insets(10))
-    rightPane.getChildren.addAll(
-      new Label("Terminal:"),
-      statusArea
-    )
-    VBox.setVgrow(statusArea, Priority.ALWAYS)
 
     val bottomPane = new SplitPane()
     bottomPane.setOrientation(Orientation.HORIZONTAL)
-    bottomPane.getItems.addAll(leftPane, rightPane)
+    bottomPane.getItems.addAll(leftPane)
     bottomPane.setDividerPositions(0.6)
 
     val mainSplitPane = new SplitPane()
@@ -147,20 +138,20 @@ class SendTab(sshManager: SSHManager, updateTitle: () => Unit) {
 
           Platform.runLater(() => {
             fileTreeView.setRoot(rootItem)
-            statusArea.appendText("Remote file tree updated.\n")
+            Status.appendText("Remote file tree updated.")
           })
         }.recover {
           case ex => Platform.runLater(() => {
-            statusArea.appendText(s"Failed to list remote files: ${ex.getMessage}\n")
+            Status.appendText(s"Failed to list remote files: ${ex.getMessage}")
           })
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          statusArea.appendText(s"SSH operation failed: ${ex.getMessage}\n")
+          Status.appendText(s"SSH operation failed: ${ex.getMessage}")
         })
       }
     } else {
-      statusArea.appendText("Not connected. Please connect to SSH first.\n")
+      Status.appendText("Not connected. Please connect to SSH first.")
     }
   }
 }

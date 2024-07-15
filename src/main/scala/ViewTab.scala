@@ -11,6 +11,7 @@ import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.text.Text
 import javafx.util.StringConverter
 import ssh.SSHManager
+import content.Status
 
 import java.nio.file.{Files, Paths}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -19,11 +20,7 @@ import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 
-class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
-  private val statusArea = new TextArea()
-  statusArea.setEditable(false)
-  statusArea.setPrefRowCount(3)
-
+class ViewTab(sshManager: SSHManager) {
   private val fileTreeView = new TreeView[RemoteFile]()
   fileTreeView.setShowRoot(false)
   fileTreeView.setCellFactory(_ => new TextFieldTreeCell[RemoteFile](new StringConverter[RemoteFile]() {
@@ -78,9 +75,6 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
     val content = new BorderPane()
     content.setTop(topPane)
     content.setCenter(splitPane)
-    content.setBottom(statusArea)
-
-    BorderPane.setMargin(statusArea, new Insets(10, 0, 0, 0))
 
     content
   }
@@ -92,40 +86,40 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
         val remoteFile = selectedItem.getValue.fullPath
         val saveAsName = selectedItem.getValue.name
         val localPath = Paths.get(Config.dir.downloadsDir, saveAsName).toString
-        
+
         sshManager.withSSH { ssh =>
           Try {
             ssh.get(remoteFile, localPath)
             Platform.runLater(() => {
-              statusArea.appendText(s"File downloaded: $remoteFile -> $localPath\n")
+              Status.appendText(s"File downloaded: $remoteFile -> $localPath")
             })
           }.recover {
             case ex => Platform.runLater(() => {
-              statusArea.appendText(s"Download failed: ${ex.getMessage}\n")
+              Status.appendText(s"Download failed: ${ex.getMessage}")
             })
           }
         }.recover {
           case ex => Platform.runLater(() => {
-            statusArea.appendText(s"SSH operation failed: ${ex.getMessage}\n")
+            Status.appendText(s"SSH operation failed: ${ex.getMessage}")
           })
         }
       } else {
-        statusArea.appendText("Please select a file to download.\n")
+        Status.appendText("Please select a file to download.")
       }
     } else {
-      statusArea.appendText("Not connected. Please connect to SSH first.\n")
+      Status.appendText("Not connected. Please connect to SSH first.")
     }
   }
 
   private def performSearchAsync(): Unit = {
     val searchTerm = searchField.getText.trim.toLowerCase
     if (searchTerm.isEmpty) {
-      statusArea.appendText("Please enter a search term.\n")
+      Status.appendText("Please enter a search term.\n")
       return
     }
 
     if (sshManager.isConnected) {
-      statusArea.appendText("Searching...\n")
+      Status.appendText("Searching...")
       Future {
         sshManager.withSSH { ssh =>
           Try {
@@ -145,23 +139,23 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
                 addPathToTree(rootItem, relativePath, path, homeDir)
               }
               fileTreeView.setRoot(rootItem)
-              statusArea.appendText(s"Found ${searchResults.length} results for '$searchTerm'\n")
+              Status.appendText(s"Found ${searchResults.length} results for '$searchTerm'")
             })
           }
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          statusArea.appendText(s"Search failed: ${ex.getMessage}\n")
+          Status.appendText(s"Search failed: ${ex.getMessage}")
         })
       }
     } else {
-      statusArea.appendText("Not connected. Please connect to SSH first.\n")
+      Status.appendText("Not connected. Please connect to SSH first.")
     }
   }
 
   private def updateFileTreeAsync(): Unit = {
     if (sshManager.isConnected) {
-      statusArea.appendText("Refreshing file tree...\n")
+      Status.appendText("Refreshing file tree...")
       Future {
         sshManager.withSSH { ssh =>
           Try {
@@ -182,17 +176,17 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
 
             Platform.runLater(() => {
               fileTreeView.setRoot(rootItem)
-              statusArea.appendText("Remote file tree updated.\n")
+              Status.appendText("Remote file tree updated.")
             })
           }
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          statusArea.appendText(s"Failed to refresh file tree: ${ex.getMessage}\n")
+          Status.appendText(s"Failed to refresh file tree: ${ex.getMessage}")
         })
       }
     } else {
-      statusArea.appendText("Not connected. Please connect to SSH first.\n")
+      Status.appendText("Not connected. Please connect to SSH first.")
     }
   }
 
@@ -243,23 +237,23 @@ class ViewTab(sshManager: SSHManager, updateTitle: () => Unit) {
 
           Platform.runLater(() => {
             contentArea.setContent(contentNode)
-            statusArea.appendText(s"Viewing file: ${file.name}\n")
+            Status.appendText(s"Viewing file: ${file.name}")
           })
 
           Files.delete(tempFile)
           Files.delete(tempDir)
         }.recover {
           case ex => Platform.runLater(() => {
-            statusArea.appendText(s"Failed to view file: ${ex.getMessage}\n")
+            Status.appendText(s"Failed to view file: ${ex.getMessage}")
           })
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          statusArea.appendText(s"SSH operation failed: ${ex.getMessage}\n")
+          Status.appendText(s"SSH operation failed: ${ex.getMessage}")
         })
       }
     } else {
-      statusArea.appendText("Not connected. Please connect to SSH first.\n")
+      Status.appendText("Not connected. Please connect to SSH first.")
     }
   }
 }

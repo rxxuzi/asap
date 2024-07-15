@@ -2,12 +2,9 @@ import javafx.geometry.Insets
 import javafx.scene.control.{Button, Label, TextArea, TextField}
 import javafx.scene.layout.{HBox, VBox}
 import ssh.SSHManager
+import content.Status
 
-class HomeTab(sshManager: SSHManager, updateTitle: () => Unit) {
-  private val statusArea = new TextArea()
-  statusArea.setEditable(false)
-  statusArea.setPrefRowCount(10)
-
+class HomeTab(sshManager: SSHManager) {
   def getContent: VBox = {
     val sshConfigPath = new TextField()
     sshConfigPath.setPromptText("Path to SSH config JSON")
@@ -15,20 +12,18 @@ class HomeTab(sshManager: SSHManager, updateTitle: () => Unit) {
     val connectButton = new Button("Connect")
 
     connectButton.setOnAction(_ => {
-      sshManager.connect(sshConfigPath.getText) match {
-        case scala.util.Success(info) => {
-          statusArea.appendText(s"Connected: $info\n")
-          updateTitle()
+      if (!sshManager.isConnected) {
+        sshManager.connect(sshConfigPath.getText) match {
+          case scala.util.Success(info) => Status.appendText(s"Connected: $info")
+          case scala.util.Failure(ex) => Status.appendText(s"Connection failed: ${ex.getMessage}")
         }
-        case scala.util.Failure(ex) => statusArea.appendText(s"Connection failed: ${ex.getMessage}\n")
       }
     })
 
     val content = new VBox(10)
     content.setPadding(new Insets(10))
     content.getChildren.addAll(
-      new HBox(10, new Label("SSH Config:"), sshConfigPath, connectButton),
-      statusArea
+      new HBox(10, new Label("SSH Config:"), sshConfigPath, connectButton)
     )
 
     content
