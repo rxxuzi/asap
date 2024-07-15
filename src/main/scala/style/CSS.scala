@@ -2,6 +2,6 @@ package style
 
 enum CSS {
   case MAIN
-  case LABEL
+  case LIGHT
   case DARK
 }
