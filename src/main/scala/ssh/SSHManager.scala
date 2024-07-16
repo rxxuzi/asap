@@ -6,6 +6,7 @@ class SSHManager {
   private var sshOpt: Option[SSH] = None
   private var homeDirectory: String = "/"
   private var currentPath: String = "/"
+  private var connectionListeners: List[() => Unit] = List.empty
 
   def connect(configPath: String): Try[String] = Try {
     val ssh = new SSH(configPath)
@@ -21,6 +22,14 @@ class SSHManager {
     sshOpt = None
     homeDirectory = "/"
     currentPath = "/"
+  }
+
+  def addConnectionListener(listener: () => Unit): Unit = {
+    connectionListeners = listener :: connectionListeners
+  }
+
+  private def notifyConnectionListeners(): Unit = {
+    connectionListeners.foreach(_.apply())
   }
 
   def withSSH[T](f: SSH => T): Try[T] = {

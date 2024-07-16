@@ -1,56 +1,97 @@
 import javafx.scene.layout.{VBox, HBox}
-import javafx.scene.control.{TextField, Button, TextArea}
-import javafx.geometry.Insets
+import javafx.scene.control.{TextField, Button, TextArea, Label}
+import javafx.geometry.{Insets, Pos}
 import ssh.SSHManager
 import content.Status
+import javafx.scene.input.KeyCode
+import javafx.application.Platform
 
 class ExecTab(sshManager: SSHManager) {
   private val commandField = new TextField()
   commandField.setPromptText("Enter command")
 
-  private val execButton = new Button("Exec")
+  private val execButton = new Button("Execute")
 
   private val outputArea = new TextArea()
   outputArea.setEditable(false)
   outputArea.setPrefRowCount(20)
 
+  private val pathLabel = new Label()
+
   def getContent: VBox = {
     execButton.setOnAction(_ => executeCommand())
 
+    // Improve key event handler for Enter key
+    commandField.setOnKeyPressed(event => {
+      if (event.getCode == KeyCode.ENTER) {
+        event.consume() // Prevent the default action
+        Platform.runLater(() => executeCommand()) // Execute on the JavaFX Application Thread
+      }
+    })
+
     val inputBox = new HBox(10)
     inputBox.getChildren.addAll(commandField, execButton)
+    inputBox.setAlignment(Pos.CENTER_LEFT)
     HBox.setHgrow(commandField, javafx.scene.layout.Priority.ALWAYS)
 
     val content = new VBox(10)
     content.setPadding(new Insets(10))
-    content.getChildren.addAll(inputBox, outputArea)
+    content.getChildren.addAll(pathLabel, inputBox, outputArea)
     VBox.setVgrow(outputArea, javafx.scene.layout.Priority.ALWAYS)
+
+    updatePathLabel()
+    sshManager.addConnectionListener(() => updatePathLabel())
 
     content
   }
 
-  private def executeCommand(): Unit = {
-    val command = commandField.getText
-    if (command.nonEmpty) {
-      if (sshManager.isConnected) {
-        sshManager.withSSH { ssh =>
-          outputArea.appendText(s"> $command")
-          val output = ssh.exec(command)
-          outputArea.appendText(s"$output")
+  private def updatePathLabel(): Unit = {
+    pathLabel.setText(s"Current path: ${sshManager.getCurrentPath}")
+  }
 
-          if (command.trim.startsWith("cd ")) {
-            val newPath = ssh.exec("pwd").trim
-            sshManager.updatePath(newPath)
+  private def executeCommand(): Unit = {
+    val command = commandField.getText.trim
+    if (command.nonEmpty) {
+      if (command == "clear") {
+        outputArea.clear()
+        Status.appendText("Output area cleared")
+      } else if (sshManager.isConnected) {
+        sshManager.withSSH { ssh =>
+          outputArea.appendText(s"\n> $command\n")
+
+          val (output, newPath) = if (command.startsWith("cd ")) {
+            val cdCommand = s"cd ${sshManager.getCurrentPath} && ${command} && pwd"
+            val result = ssh.exec(cdCommand)
+            val lines = result.split("\n")
+            val newPath = lines.last.trim
+            (lines.init.mkString("\n"), newPath)
+          } else {
+            val fullCommand = s"cd ${sshManager.getCurrentPath} && ${command}"
+            (ssh.exec(fullCommand), sshManager.getCurrentPath)
           }
+
+
+
+          outputArea.appendText(s"$output\n")
+          if (command.equals("clear")) {
+
+          }
+          sshManager.updatePath(newPath)
+          updatePathLabel()
         }.recover {
-          case ex => outputArea.appendText(s"Execution failed: ${ex.getMessage}")
+          case ex =>
+            outputArea.appendText(s"Execution failed: ${ex.getMessage}\n")
+            Status.appendText(s"Command execution failed: ${ex.getMessage}")
         }
       } else {
-        outputArea.appendText("Not connected. Please connect to SSH first.")
+        outputArea.appendText("Not connected. Please connect to SSH first.\n")
+        Status.appendText("Cannot execute command: Not connected to SSH")
       }
     } else {
-      outputArea.appendText("Please enter a command.")
+      outputArea.appendText("Please enter a command.\n")
+      Status.appendText("Cannot execute empty command")
     }
     commandField.clear()
+    commandField.requestFocus()
   }
 }
