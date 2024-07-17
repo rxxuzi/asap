@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 150">
+    <defs>
+        <filter id="softGlow" height="300%" width="300%" x="-75%" y="-75%">
+            <feMorphology operator="dilate" radius="3" in="SourceAlpha" result="thicken" />
+            <feGaussianBlur in="thicken" stdDeviation="5" result="blurred" />
+            <feFlood flood-color="#ffffff" result="glowColor" />
+            <feComposite in="glowColor" in2="blurred" operator="in" result="softGlow_colored" />
+            <feMerge>
+                <feMergeNode in="softGlow_colored"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <style type="text/css">
+            @import url('https://fonts.googleapis.com/css2?family=Bangers&amp;display=swap');
+        </style>
+    </defs>
+
+    <g transform="translate(75,75)">
+        <circle r="15" fill="#F893FD" filter="url(#softGlow)">
+            <animateTransform attributeName="transform"
+                              type="rotate"
+                              from="0 0 0"
+                              to="360 0 0"
+                              dur="3s"
+                              repeatCount="indefinite"/>
+            <animateMotion
+                    path="M 0 -35 A 35 35 0 1 1 0 35 A 35 35 0 1 1 0 -35"
+                    dur="3s"
+                    repeatCount="indefinite"/>
+        </circle>
+
+        <circle r="15" fill="#A9FA9E" filter="url(#softGlow)">
+            <animateTransform attributeName="transform"
+                              type="rotate"
+                              from="90 0 0"
+                              to="450 0 0"
+                              dur="3s"
+                              repeatCount="indefinite"/>
+            <animateMotion
+                    path="M 0 -35 A 35 35 0 1 1 0 35 A 35 35 0 1 1 0 -35"
+                    dur="3s"
+                    repeatCount="indefinite"
+                    begin="-0.75s"/>
+        </circle>
+
+        <circle r="15" fill="#A1F2FE" filter="url(#softGlow)">
+            <animateTransform attributeName="transform"
+                              type="rotate"
+                              from="180 0 0"
+                              to="540 0 0"
+                              dur="3s"
+                              repeatCount="indefinite"/>
+            <animateMotion
+                    path="M 0 -35 A 35 35 0 1 1 0 35 A 35 35 0 1 1 0 -35"
+                    dur="3s"
+                    repeatCount="indefinite"
+                    begin="-1.5s"/>
+        </circle>
+
+        <circle r="15" fill="#AAAAFB" filter="url(#softGlow)">
+            <animateTransform attributeName="transform"
+                              type="rotate"
+                              from="270 0 0"
+                              to="630 0 0"
+                              dur="3s"
+                              repeatCount="indefinite"/>
+            <animateMotion
+                    path="M 0 -35 A 35 35 0 1 1 0 35 A 35 35 0 1 1 0 -35"
+                    dur="3s"
+                    repeatCount="indefinite"
+                    begin="-2.25s"/>
+        </circle>
+    </g>
+
+    <text x="150" y="85" font-family="Montserrat" font-size="60" fill="#333" text-anchor="start" filter="url(#softGlow)">asap</text>
+</svg>
