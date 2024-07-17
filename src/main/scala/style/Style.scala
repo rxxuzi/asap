@@ -4,8 +4,8 @@ import global.Config
 import javafx.scene.Scene
 
 object Style {
-  val dark: (String, String) = ("#2C2C2C", "#E0E0E0")
-  val light: (String, String) = ("#FFFFFF", "#333333")
+  val dark: (String, String) = ("#2C2C2C", "#E0E0E0") // bg fg
+  val light: (String, String) = ("#FFFFFF", "#333333") // bg fg
   
   private val dir = "css"
   private var currentStyle: CSS = if (Config.dark) CSS.DARK else CSS.LIGHT
@@ -21,6 +21,10 @@ object Style {
   def toggleStyle(scene: Scene): Unit = {
     currentStyle = if (currentStyle == CSS.LIGHT) CSS.DARK else CSS.LIGHT
     updateSceneStyle(scene)
+  }
+  
+  def setStyleConfig(): Unit = {
+    Config.setDark(currentStyle == CSS.DARK)
   }
 
   def updateSceneStyle(scene: Scene): Unit = {

@@ -12,7 +12,7 @@ case class DirConfig(downloadsDir: String, cacheDir: String, logDir:String, dbgD
 class Config(
               val project: String,
               val css: Boolean,
-              val dark: Boolean,
+              var dark: Boolean,
               val ssh: SshConfig,
               val out: OutConfig,
               val dir: DirConfig
@@ -62,6 +62,8 @@ object Config {
   def initialize(): Unit = {
     println(s"Config initialized with project: ${instance.project}")
   }
+  
+  def setDark(bool : Boolean) : Unit = instance.dark = bool
 
   def gen(): Unit = {
     val gson = new GsonBuilder().setPrettyPrinting().create()
