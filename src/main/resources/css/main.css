@@ -16,13 +16,13 @@
 }
 
 .text-field {
-    -fx-border-width: 1px;
+    -fx-border-width: 2px;
     -fx-border-radius: 0;
     -fx-padding: 5px;
 }
 
 .text-field:focused {
-    -fx-border-color: #F893FD;
+    -fx-border-color: #A1F2FE;
     -fx-border-width: 2px;
 }
 
@@ -118,4 +118,12 @@
 
 .radio-button {
     -fx-text-fill: -fx-text-base-color;
+}
+
+.tree-view .tree-disclosure-node .arrow {
+    -fx-background-color: white;
+}
+
+.tree-view:focused .tree-cell:filled:selected .tree-disclosure-node .arrow {
+    -fx-background-color: #2C2C2C;
 }
