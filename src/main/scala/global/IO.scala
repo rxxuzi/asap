@@ -5,14 +5,8 @@ import java.io.File
 object IO {
   def mkdir(path: String): Boolean = {
     val dir = new File(path)
-    if (dir.isDirectory) {
-      if (dir.exists()) {
-        return true
-      } else {
-        return dir.mkdir()
-      }
-    }
-    false
+    if(!dir.exists()) dir.mkdir()
+    else false
   }
 
   def listFiles(dir: String): Seq[File] = {
