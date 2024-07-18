@@ -1,19 +1,22 @@
 package global
 
+import content.Status
+
 import java.io.{BufferedWriter, FileWriter}
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.nio.file.{Files, Paths}
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
 
 // ログタイプを定義するEnum
 enum Log {
-  case Error, Debug, Info
+  case Error, Debug, Info, Warn
 }
 
 object Log {
   private var logFilePath: String = _
+  private var mk : Boolean = false
 
   def init(dirPath: String): Unit = {
     val dateFormat = new SimpleDateFormat("yyyyMMdd-HHmmss")
@@ -23,10 +26,12 @@ object Log {
       Files.createDirectories(dir)
     }
     logFilePath = s"$dirPath/asap-$dateStr.log"
+    mk = true
   }
 
-  def append(logType: Log, message: String): Unit = {
-    if (Config.out.log && logFilePath == null) {
+  private def append(logType: Log, message: String): Unit = {
+    Status.appendText(message)
+    if (mk) {
       Future {
         val writer = new BufferedWriter(new FileWriter(logFilePath, true))
         try {
@@ -40,5 +45,9 @@ object Log {
     }
   }
 
-  def append(message: String): Unit = append(Log.Info, message)
+  def err(msg: String) : Unit = append(Log.Error, msg)
+  def warn(msg: String) : Unit = append(Log.Warn, msg)
+  def info(msg: String) : Unit = append(Log.Info, msg)
+  def dbg(msg: String) : Unit = append(Log.Debug, msg)
+  def apt(msg: String) : Unit = Status.appendText(msg)
 }
