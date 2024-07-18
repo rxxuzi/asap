@@ -65,6 +65,8 @@ object Config {
   
   def setDark(bool : Boolean) : Unit = instance.dark = bool
 
+  def toJson: String = new GsonBuilder().setPrettyPrinting().create().toJson(instance)
+
   def gen(): Unit = {
     val gson = new GsonBuilder().setPrettyPrinting().create()
     val json = gson.toJson(instance)

@@ -82,6 +82,7 @@ class Main extends Application {
   }
 
   private def exit(): Unit = {
+    Style.setStyleConfig()
     Config.gen()
   }
 }
@@ -95,7 +96,6 @@ object Main {
     if (Config.out.log) {
       IO.mkdir(Config.dir.logDir)
       Log.init(Config.dir.logDir)
-      Log.append(Log.Info, "start")
     }
   }
 

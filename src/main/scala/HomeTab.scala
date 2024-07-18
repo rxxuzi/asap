@@ -1,11 +1,10 @@
+import global.Log
 import javafx.geometry.Insets
-import javafx.scene.control.{Button, Label, TextArea, TextField, ToggleButton}
+import javafx.scene.Scene
+import javafx.scene.control.{Button, Label, TextField, ToggleButton}
 import javafx.scene.layout.{HBox, VBox}
 import ssh.SSHManager
-import content.Status
 import style.{CSS, Style}
-import javafx.scene.Scene
-import javafx.scene.web.{WebEngine, WebView}
 
 class HomeTab(sshManager: SSHManager, scene: Scene) {
   private val connectButton = new Button("Connect")
@@ -44,16 +43,16 @@ class HomeTab(sshManager: SSHManager, scene: Scene) {
   private def connect(): Unit = {
     sshManager.connect(sshConfigPath.getText) match {
       case scala.util.Success(info) =>
-        Status.appendText(s"Connected: $info")
+        Log.info(s"Connected: $info")
         updateConnectButtonState()
       case scala.util.Failure(ex) =>
-        Status.appendText(s"Connection failed: ${ex.getMessage}")
+        Log.err(s"Connection failed: ${ex.getMessage}")
     }
   }
 
   private def disconnect(): Unit = {
     sshManager.disconnect()
-    Status.appendText("Disconnected from SSH")
+    Log.info("Disconnected from SSH")
     updateConnectButtonState()
   }
 

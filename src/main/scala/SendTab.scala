@@ -7,7 +7,7 @@ import javafx.scene.layout.{HBox, Priority, VBox}
 import javafx.stage.FileChooser
 import javafx.util.StringConverter
 import ssh.SSHManager
-import content.Status
+import global.Log
 
 import java.io.File
 import scala.jdk.CollectionConverters.*
@@ -59,16 +59,16 @@ class SendTab(sshManager: SSHManager) {
           sshManager.withSSH { ssh =>
             val remoteFilePath = s"$remotePath/${localFile.getName}"
             ssh.send(localFile, remoteFilePath)
-            Status.appendText(s"File sent: ${localFile.getAbsolutePath} -> $remoteFilePath")
+            Log.info(s"File sent: ${localFile.getAbsolutePath} -> $remoteFilePath")
             updateFileTree()
           }.recover {
-            case ex => Status.appendText(s"Send failed: ${ex.getMessage}")
+            case ex => Log.warn(s"Send failed: ${ex.getMessage}")
           }
         } else {
-          Status.appendText("Please select a valid local file and remote directory.")
+          Log.warn("Please select a valid local file and remote directory.")
         }
       } else {
-        Status.appendText("Not connected. Please connect to SSH first.")
+        Log.err("Not connected. Please connect to SSH first.")
       }
     })
 
@@ -138,20 +138,20 @@ class SendTab(sshManager: SSHManager) {
 
           Platform.runLater(() => {
             fileTreeView.setRoot(rootItem)
-            Status.appendText("Remote file tree updated.")
+            Log.info("Remote file tree updated.")
           })
         }.recover {
           case ex => Platform.runLater(() => {
-            Status.appendText(s"Failed to list remote files: ${ex.getMessage}")
+            Log.err(s"Failed to list remote files: ${ex.getMessage}")
           })
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          Status.appendText(s"SSH operation failed: ${ex.getMessage}")
+          Log.err(s"SSH operation failed: ${ex.getMessage}")
         })
       }
     } else {
-      Status.appendText("Not connected. Please connect to SSH first.")
+      Log.err("Not connected. Please connect to SSH first.")
     }
   }
 }

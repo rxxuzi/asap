@@ -1,10 +1,10 @@
-import javafx.scene.layout.{VBox, HBox}
-import javafx.scene.control.{TextField, Button, TextArea, Label}
-import javafx.geometry.{Insets, Pos}
-import ssh.SSHManager
-import content.Status
-import javafx.scene.input.KeyCode
+import global.Log
 import javafx.application.Platform
+import javafx.geometry.{Insets, Pos}
+import javafx.scene.control.{Button, Label, TextArea, TextField}
+import javafx.scene.input.KeyCode
+import javafx.scene.layout.{HBox, VBox}
+import ssh.SSHManager
 
 class ExecTab(sshManager: SSHManager) {
   private val commandField = new TextField()
@@ -54,19 +54,19 @@ class ExecTab(sshManager: SSHManager) {
     if (command.nonEmpty) {
       if (command == "clear") {
         outputArea.clear()
-        Status.appendText("Output area cleared")
+        Log.info("Output area cleared")
       } else if (sshManager.isConnected) {
         sshManager.withSSH { ssh =>
           outputArea.appendText(s"\n> $command\n")
 
           val (output, newPath) = if (command.startsWith("cd ")) {
-            val cdCommand = s"cd ${sshManager.getCurrentPath} && ${command} && pwd"
+            val cdCommand = s"cd ${sshManager.getCurrentPath} && $command && pwd"
             val result = ssh.exec(cdCommand)
             val lines = result.split("\n")
             val newPath = lines.last.trim
             (lines.init.mkString("\n"), newPath)
           } else {
-            val fullCommand = s"cd ${sshManager.getCurrentPath} && ${command}"
+            val fullCommand = s"cd ${sshManager.getCurrentPath} && $command"
             (ssh.exec(fullCommand), sshManager.getCurrentPath)
           }
 
@@ -81,15 +81,15 @@ class ExecTab(sshManager: SSHManager) {
         }.recover {
           case ex =>
             outputArea.appendText(s"Execution failed: ${ex.getMessage}\n")
-            Status.appendText(s"Command execution failed: ${ex.getMessage}")
+            Log.err(s"Command execution failed: ${ex.getMessage}")
         }
       } else {
         outputArea.appendText("Not connected. Please connect to SSH first.\n")
-        Status.appendText("Cannot execute command: Not connected to SSH")
+        Log.err("Cannot execute command: Not connected to SSH")
       }
     } else {
       outputArea.appendText("Please enter a command.\n")
-      Status.appendText("Cannot execute empty command")
+      Log.err("Cannot execute empty command")
     }
     commandField.clear()
     commandField.requestFocus()

@@ -11,7 +11,7 @@ import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.text.Text
 import javafx.util.StringConverter
 import ssh.SSHManager
-import content.Status
+import global.Log
 
 import java.nio.file.{Files, Paths}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -91,35 +91,35 @@ class ViewTab(sshManager: SSHManager) {
           Try {
             ssh.get(remoteFile, localPath)
             Platform.runLater(() => {
-              Status.appendText(s"File downloaded: $remoteFile -> $localPath")
+              Log.info(s"File downloaded: $remoteFile -> $localPath")
             })
           }.recover {
             case ex => Platform.runLater(() => {
-              Status.appendText(s"Download failed: ${ex.getMessage}")
+              Log.err(s"Download failed: ${ex.getMessage}")
             })
           }
         }.recover {
           case ex => Platform.runLater(() => {
-            Status.appendText(s"SSH operation failed: ${ex.getMessage}")
+            Log.err(s"SSH operation failed: ${ex.getMessage}")
           })
         }
       } else {
-        Status.appendText("Please select a file to download.")
+        Log.warn("Please select a file to download.")
       }
     } else {
-      Status.appendText("Not connected. Please connect to SSH first.")
+      Log.warn("Not connected. Please connect to SSH first.")
     }
   }
 
   private def performSearchAsync(): Unit = {
     val searchTerm = searchField.getText.trim.toLowerCase
     if (searchTerm.isEmpty) {
-      Status.appendText("Please enter a search term.\n")
+      Log.err("Please enter a search term.\n")
       return
     }
 
     if (sshManager.isConnected) {
-      Status.appendText("Searching...")
+      Log.apt("Searching...")
       Future {
         sshManager.withSSH { ssh =>
           Try {
@@ -139,23 +139,23 @@ class ViewTab(sshManager: SSHManager) {
                 addPathToTree(rootItem, relativePath, path, homeDir)
               }
               fileTreeView.setRoot(rootItem)
-              Status.appendText(s"Found ${searchResults.length} results for '$searchTerm'")
+              Log.info(s"Found ${searchResults.length} results for '$searchTerm'")
             })
           }
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          Status.appendText(s"Search failed: ${ex.getMessage}")
+          Log.err(s"Search failed: ${ex.getMessage}")
         })
       }
     } else {
-      Status.appendText("Not connected. Please connect to SSH first.")
+      Log.warn("Not connected. Please connect to SSH first.")
     }
   }
 
   private def updateFileTreeAsync(): Unit = {
     if (sshManager.isConnected) {
-      Status.appendText("Refreshing file tree...")
+      Log.apt("Refreshing file tree...")
       Future {
         sshManager.withSSH { ssh =>
           Try {
@@ -176,17 +176,17 @@ class ViewTab(sshManager: SSHManager) {
 
             Platform.runLater(() => {
               fileTreeView.setRoot(rootItem)
-              Status.appendText("Remote file tree updated.")
+              Log.info("Remote file tree updated.")
             })
           }
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          Status.appendText(s"Failed to refresh file tree: ${ex.getMessage}")
+          Log.err(s"Failed to refresh file tree: ${ex.getMessage}")
         })
       }
     } else {
-      Status.appendText("Not connected. Please connect to SSH first.")
+      Log.warn("Not connected. Please connect to SSH first.")
     }
   }
 
@@ -218,7 +218,7 @@ class ViewTab(sshManager: SSHManager) {
           val tempFile = tempDir.resolve(file.name)
           ssh.get(file.fullPath, tempFile.toString)
 
-          val contentNode = if (isImageFile(file.name)) {
+          val contentNode : Node = if (isImageFile(file.name)) {
             val image = new Image(tempFile.toUri.toString)
             val imageView = new ImageView(image)
             imageView.setPreserveRatio(true)
@@ -237,23 +237,23 @@ class ViewTab(sshManager: SSHManager) {
 
           Platform.runLater(() => {
             contentArea.setContent(contentNode)
-            Status.appendText(s"Viewing file: ${file.name}")
+            Log.info(s"Viewing file: ${file.name}")
           })
 
           Files.delete(tempFile)
           Files.delete(tempDir)
         }.recover {
           case ex => Platform.runLater(() => {
-            Status.appendText(s"Failed to view file: ${ex.getMessage}")
+            Log.info(s"Failed to view file: ${ex.getMessage}")
           })
         }
       }.recover {
         case ex => Platform.runLater(() => {
-          Status.appendText(s"SSH operation failed: ${ex.getMessage}")
+          Log.err(s"SSH operation failed: ${ex.getMessage}")
         })
       }
     } else {
-      Status.appendText("Not connected. Please connect to SSH first.")
+      Log.err("Not connected. Please connect to SSH first.")
     }
   }
 }
