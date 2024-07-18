@@ -8,19 +8,20 @@ import javafx.scene.Scene
 import javafx.scene.web.{WebEngine, WebView}
 
 class HomeTab(sshManager: SSHManager, scene: Scene) {
+  private val connectButton = new Button("Connect")
+  private val sshConfigPath = new TextField()
+
   def getContent: VBox = {
-    val sshConfigPath = new TextField()
     val configLabel = new Label("SSH Config:")
     sshConfigPath.setPromptText("Path to SSH config JSON")
 
-    val connectButton = new Button("Connect")
+    updateConnectButtonState()
 
     connectButton.setOnAction(_ => {
       if (!sshManager.isConnected) {
-        sshManager.connect(sshConfigPath.getText) match {
-          case scala.util.Success(info) => Status.appendText(s"Connected: $info")
-          case scala.util.Failure(ex) => Status.appendText(s"Connection failed: ${ex.getMessage}")
-        }
+        connect()
+      } else {
+        disconnect()
       }
     })
 
@@ -38,5 +39,31 @@ class HomeTab(sshManager: SSHManager, scene: Scene) {
       styleToggle
     )
     content
+  }
+
+  private def connect(): Unit = {
+    sshManager.connect(sshConfigPath.getText) match {
+      case scala.util.Success(info) =>
+        Status.appendText(s"Connected: $info")
+        updateConnectButtonState()
+      case scala.util.Failure(ex) =>
+        Status.appendText(s"Connection failed: ${ex.getMessage}")
+    }
+  }
+
+  private def disconnect(): Unit = {
+    sshManager.disconnect()
+    Status.appendText("Disconnected from SSH")
+    updateConnectButtonState()
+  }
+
+  private def updateConnectButtonState(): Unit = {
+    if (sshManager.isConnected) {
+      connectButton.setText("Disconnect")
+      sshConfigPath.setDisable(true)
+    } else {
+      connectButton.setText("Connect")
+      sshConfigPath.setDisable(false)
+    }
   }
 }
