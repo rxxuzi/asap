@@ -1,6 +1,4 @@
-import sbtassembly.AssemblyPlugin.autoImport._
-
-ThisBuild / version := "1.0"
+ThisBuild / version := "1.1"
 ThisBuild / scalaVersion := "3.3.1"
 
 // Path to JavaFX SDK

@@ -10,6 +10,7 @@ import javafx.stage.Stage
 import ssh.SSHManager
 import style.*
 import javafx.scene.image.Image
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class Main extends Application {
   private val sshManager = new SSHManager()

@@ -1,26 +1,23 @@
 import content.{RemoteFile, Tree}
+import global.Log
 import javafx.application.Platform
+import javafx.collections.FXCollections
 import javafx.geometry.{Insets, Orientation}
 import javafx.scene.control.*
-import javafx.scene.control.cell.TextFieldTreeCell
 import javafx.scene.layout.{HBox, Priority, VBox}
 import javafx.stage.FileChooser
-import javafx.util.StringConverter
 import ssh.SSHManager
-import global.Log
 
 import java.io.File
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
-class SendTab(sshManager: SSHManager) {
+class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
+  private val maxSendFiles = 10
   private val fileTreeView = new TreeView[RemoteFile]()
   fileTreeView.setShowRoot(false)
-  fileTreeView.setCellFactory(_ => new TextFieldTreeCell[RemoteFile](new StringConverter[RemoteFile]() {
-    override def toString(rf: RemoteFile): String = rf.name
-
-    override def fromString(string: String): RemoteFile = null // Not used for this example
-  }))
+  fileTreeView.setCellFactory(Tree.createRemoteFileCellFactory())
 
   private val showAllFilesRadio = new RadioButton("Show All Files")
   private val showVisibleFilesRadio = new RadioButton("Show Visible Files Only")
@@ -29,50 +26,83 @@ class SendTab(sshManager: SSHManager) {
   showVisibleFilesRadio.setToggleGroup(toggleGroup)
   showVisibleFilesRadio.setSelected(true)
 
-  private val localFilePathField = new TextField()
+  private val localFilesList = FXCollections.observableArrayList[File]()
+  private val localFilesListView = new ListView[File](localFilesList)
   private val remoteFilePathField = new TextField()
-  localFilePathField.setPrefWidth(300)
   remoteFilePathField.setPrefWidth(300)
 
+  private val selectedFilesLabel = new Label("Selected Files:")
+  private val selectedFilesPath = new TextField()
+  selectedFilesPath.setEditable(true)
+
   def getContent: SplitPane = {
-    localFilePathField.setPromptText("Local file path")
     remoteFilePathField.setPromptText("Remote directory path")
 
-    val chooseFileButton = new Button("Choose File")
-    val sendButton = new Button("Send File")
+    val chooseFilesButton = new Button("Choose Files")
+    val sendButton = new Button("Send Files")
     val refreshButton = new Button("Refresh")
+    val clearButton = new Button("Clear All")
 
-    chooseFileButton.setOnAction(_ => {
+    chooseFilesButton.setOnAction(_ => {
       val fileChooser = new FileChooser()
-      fileChooser.setTitle("Select File")
-      val selectedFile = fileChooser.showOpenDialog(null)
-      if (selectedFile != null) {
-        localFilePathField.setText(selectedFile.getAbsolutePath)
+      fileChooser.setTitle("Select Files")
+      val selectedFiles = fileChooser.showOpenMultipleDialog(null)
+      if (selectedFiles != null) {
+        localFilesList.clear()
+        localFilesList.addAll(selectedFiles.asScala.take(maxSendFiles).asJava)
+        updateSelectedFilesPath()
       }
     })
 
     sendButton.setOnAction(_ => {
       if (sshManager.isConnected) {
-        val localFile = new File(localFilePathField.getText)
         val remotePath = remoteFilePathField.getText
-        if (localFile.exists() && remotePath.nonEmpty) {
-          sshManager.withSSH { ssh =>
-            val remoteFilePath = s"$remotePath/${localFile.getName}"
-            ssh.send(localFile, remoteFilePath)
-            Log.info(s"File sent: ${localFile.getAbsolutePath} -> $remoteFilePath")
+        if (!localFilesList.isEmpty && remotePath.nonEmpty) {
+          sendButton.setDisable(true)
+          Future {
+            localFilesList.asScala.foreach { localFile =>
+              sshManager.withSSH { ssh =>
+                val remoteFilePath = s"$remotePath/${localFile.getName}"
+                ssh.send(localFile, remoteFilePath)
+                Log.info(s"File sent: ${localFile.getAbsolutePath} -> $remoteFilePath")
+              }
+            }
             updateFileTree()
-          }.recover {
-            case ex => Log.warn(s"Send failed: ${ex.getMessage}")
+          }.onComplete {
+            case Success(_) => Platform.runLater(() => {
+              sendButton.setDisable(false)
+              Log.info("All files sent successfully")
+            })
+            case Failure(ex) => Platform.runLater(() => {
+              sendButton.setDisable(false)
+              Log.err(s"Failed to send files: ${ex.getMessage}")
+            })
           }
         } else {
-          Log.warn("Please select a valid local file and remote directory.")
+          Log.warn("Please select valid local files and a remote directory.")
         }
       } else {
         Log.err("Not connected. Please connect to SSH first.")
       }
     })
 
-    refreshButton.setOnAction(_ => updateFileTree())
+    refreshButton.setOnAction(_ => {
+      refreshButton.setDisable(true)
+      Future {
+        updateFileTree()
+      }.onComplete {
+        case Success(_) => Platform.runLater(() => refreshButton.setDisable(false))
+        case Failure(ex) => Platform.runLater(() => {
+          refreshButton.setDisable(false)
+          Log.err(s"Refresh failed: ${ex.getMessage}")
+        })
+      }
+    })
+
+    clearButton.setOnAction(_ => {
+      localFilesList.clear()
+      updateSelectedFilesPath()
+    })
 
     toggleGroup.selectedToggleProperty().addListener((_, _, newValue) => {
       if (newValue != null) {
@@ -86,10 +116,22 @@ class SendTab(sshManager: SSHManager) {
       }
     })
 
+    localFilesListView.setCellFactory(_ => new ListCell[File] {
+      override def updateItem(item: File, empty: Boolean): Unit = {
+        super.updateItem(item, empty)
+        if (empty || item == null) {
+          setText(null)
+        } else {
+          setText(item.getName)
+        }
+      }
+    })
+
     val topPane = new VBox(10)
     topPane.setPadding(new Insets(10))
     topPane.getChildren.addAll(
-      new HBox(10, new Label("Local Path:"), localFilePathField, chooseFileButton),
+      new HBox(10, new Label("Local Files:"), chooseFilesButton, clearButton),
+      new HBox(10, selectedFilesLabel, selectedFilesPath),
       new HBox(10, new Label("Remote Path:"), remoteFilePathField),
       new HBox(10, sendButton)
     )
@@ -103,15 +145,9 @@ class SendTab(sshManager: SSHManager) {
     )
     VBox.setVgrow(fileTreeView, Priority.ALWAYS)
 
-
-    val bottomPane = new SplitPane()
-    bottomPane.setOrientation(Orientation.HORIZONTAL)
-    bottomPane.getItems.addAll(leftPane)
-    bottomPane.setDividerPositions(0.6)
-
     val mainSplitPane = new SplitPane()
     mainSplitPane.setOrientation(Orientation.VERTICAL)
-    mainSplitPane.getItems.addAll(topPane, bottomPane)
+    mainSplitPane.getItems.addAll(topPane, leftPane)
     mainSplitPane.setDividerPositions(0.3)
 
     updateFileTree()
@@ -125,24 +161,21 @@ class SendTab(sshManager: SSHManager) {
         Try {
           val homeDir = ssh.exec("echo $HOME").trim
           val showAllFiles = showAllFilesRadio.isSelected
-          val fileList = ssh.exec(s"find $homeDir -type d -o -type f").split("\n").filter(_.nonEmpty)
-          val rootItem = new TreeItem[RemoteFile](RemoteFile("~", homeDir, isDirectory = true))
-          rootItem.setExpanded(true)
-
-          fileList.foreach { path =>
-            val relativePath = path.replace(homeDir, "").stripPrefix("/")
-            if (showAllFiles || !relativePath.split("/").exists(_.startsWith("."))) {
-              Tree.addPathToTree(rootItem, relativePath, path, homeDir)
-            }
+          val findCommand = if (showAllFiles) {
+            s"find $homeDir -type d"
+          } else {
+            s"""find $homeDir -type d -not -path '*/\\.*'"""
           }
-
+          val fileList = ssh.exec(findCommand).split("\n").filter(_.nonEmpty).toList
+          val treeView = Tree.createDirectoryOnlyTree(fileList, homeDir)
           Platform.runLater(() => {
-            fileTreeView.setRoot(rootItem)
-            Log.info("Remote file tree updated.")
+            fileTreeView.setRoot(treeView.getRoot)
+            fileTreeView.setShowRoot(true)
+            Log.info("Remote directory tree updated.")
           })
         }.recover {
           case ex => Platform.runLater(() => {
-            Log.err(s"Failed to list remote files: ${ex.getMessage}")
+            Log.err(s"Failed to list remote directories: ${ex.getMessage}")
           })
         }
       }.recover {
@@ -153,5 +186,10 @@ class SendTab(sshManager: SSHManager) {
     } else {
       Log.err("Not connected. Please connect to SSH first.")
     }
+  }
+
+  private def updateSelectedFilesPath(): Unit = {
+    val paths = localFilesList.asScala.map(_.getAbsolutePath).mkString(", ")
+    selectedFilesPath.setText(paths)
   }
 }
