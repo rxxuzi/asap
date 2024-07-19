@@ -1,9 +1,22 @@
 package content
 
-import javafx.scene.control.{TreeItem, TreeView}
-import scala.jdk.CollectionConverters._
+import javafx.scene.control.cell.TextFieldTreeCell
+import javafx.scene.control.{TreeCell, TreeItem, TreeView}
+import javafx.util.{Callback, StringConverter}
+
+import scala.jdk.CollectionConverters.*
 
 object Tree {
+
+  def createRemoteFileCellFactory(): Callback[TreeView[RemoteFile], TreeCell[RemoteFile]] = {
+    _ =>
+      new TextFieldTreeCell[RemoteFile](new StringConverter[RemoteFile]() {
+        override def toString(rf: RemoteFile): String = rf.name
+
+        override def fromString(string: String): RemoteFile = null
+      })
+  }
+
   def addPathToTree(root: TreeItem[RemoteFile], relativePath: String, fullPath: String, homeDir: String): Unit = {
     val parts = relativePath.split("/")
     var currentItem = root
@@ -31,19 +44,21 @@ object Tree {
   }
 
   def createDirectoryOnlyTree(fileList: List[String], homeDir: String): TreeView[RemoteFile] = {
-    val root = new TreeItem[RemoteFile](RemoteFile("Root", homeDir, isDirectory = true))
+    val root = new TreeItem[RemoteFile](RemoteFile("~", homeDir, isDirectory = true))
     root.setExpanded(true)
 
-    fileList.filter(_.endsWith("/")).foreach { path =>
+    fileList.foreach { path =>
       val relativePath = path.replace(homeDir, "").stripPrefix("/")
-      addDirectoryPathToTree(root, relativePath, path, homeDir)
+      if (relativePath.nonEmpty) {
+        addDirectoryPathToTree(root, relativePath, path, homeDir)
+      }
     }
 
     val treeView = new TreeView[RemoteFile](root)
-    treeView.setShowRoot(false)
+    treeView.setShowRoot(true)
     treeView.setCellFactory(_ => new javafx.scene.control.cell.TextFieldTreeCell[RemoteFile](new javafx.util.StringConverter[RemoteFile]() {
       override def toString(rf: RemoteFile): String = rf.name
-      override def fromString(string: String): RemoteFile = null // Not used for this example
+      override def fromString(string: String): RemoteFile = null
     }))
 
     treeView
@@ -53,16 +68,14 @@ object Tree {
     val parts = relativePath.split("/")
     var currentItem = root
 
-    parts.zipWithIndex.foreach { case (part, index) =>
-      val (isLast: Boolean, currentPath: String) = icp(homeDir, parts, index)
-
+    parts.foreach { part =>
+      val currentPath = currentItem.getValue.fullPath + "/" + part
       currentItem.getChildren.asScala.find(_.getValue.name == part) match {
         case Some(existingItem) =>
           currentItem = existingItem
         case None =>
           val newItem = new TreeItem[RemoteFile](RemoteFile(part, currentPath, isDirectory = true))
           currentItem.getChildren.add(newItem)
-          newItem.setExpanded(false)
           currentItem = newItem
       }
     }

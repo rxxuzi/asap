@@ -1,17 +1,14 @@
-import content.RemoteFile
 import content.Tree.addPathToTree
-import global.{Config, IO}
+import content.{RemoteFile, Tree}
+import global.{Config, Log}
 import javafx.application.Platform
 import javafx.geometry.{Insets, Orientation}
 import javafx.scene.Node
-import javafx.scene.control.cell.TextFieldTreeCell
 import javafx.scene.control.*
 import javafx.scene.image.{Image, ImageView}
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.text.Text
-import javafx.util.StringConverter
 import ssh.SSHManager
-import global.Log
 
 import java.nio.file.{Files, Paths}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -23,10 +20,7 @@ import scala.util.Try
 class ViewTab(sshManager: SSHManager) {
   private val fileTreeView = new TreeView[RemoteFile]()
   fileTreeView.setShowRoot(false)
-  fileTreeView.setCellFactory(_ => new TextFieldTreeCell[RemoteFile](new StringConverter[RemoteFile]() {
-    override def toString(rf: RemoteFile): String = rf.name
-    override def fromString(string: String): RemoteFile = null // Not used for this example
-  }))
+  fileTreeView.setCellFactory(Tree.createRemoteFileCellFactory())
 
   private val contentArea = new ScrollPane()
   contentArea.setFitToWidth(true)
