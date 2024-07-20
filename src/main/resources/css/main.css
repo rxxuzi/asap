@@ -2,17 +2,21 @@
 
 .root {
     -fx-font-family: 'Segoe UI', Arial, sans-serif;
+    -primary-color: #F893FD;
+    -secondary-color: #AAAAFB;
+    -accent-color: #A1F2FE;
+    -highlight-color: #A9FA9E;
 }
 
 .button {
-    -fx-background-color: #F893FD;
+    -fx-background-color: -primary-color;
     -fx-font-weight: bold;
     -fx-padding: 8px 16px;
     -fx-background-radius: 0;
 }
 
 .button:hover {
-    -fx-background-color: #AAAAFB;
+    -fx-background-color: -accent-color;
 }
 
 .text-field {
@@ -22,7 +26,7 @@
 }
 
 .text-field:focused {
-    -fx-border-color: #A1F2FE;
+    -fx-border-color: -accent-color;
     -fx-border-width: 2px;
 }
 
@@ -55,13 +59,13 @@
 .title {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-text-fill: #F893FD;
+    -fx-text-fill: -primary-color;
 }
 
 .subtitle {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #AAAAFB;
+    -fx-text-fill: -secondary-color;
 }
 
 .radio-button .radio {
@@ -70,7 +74,7 @@
 }
 
 .radio-button:selected .radio .dot {
-    -fx-background-color: #F893FD;
+    -fx-background-color: -primary-color;
 }
 
 .check-box .box {
@@ -78,11 +82,11 @@
 }
 
 .check-box:selected .mark {
-    -fx-background-color: #F893FD;
+    -fx-background-color: -primary-color;
 }
 
 .progress-bar > .bar {
-    -fx-background-color: #F893FD;
+    -fx-background-color: -primary-color;
 }
 
 .combo-box {
@@ -102,18 +106,18 @@
 }
 
 .toggle-button {
-    -fx-background-color: #F893FD;
+    -fx-background-color: -primary-color;
     -fx-font-weight: bold;
     -fx-padding: 8px 16px;
     -fx-background-radius: 0;
 }
 
 .toggle-button:selected {
-    -fx-background-color: #E052E7;
+    -fx-background-color: derive(-primary-color, -20%);
 }
 
 .toggle-button:hover {
-    -fx-background-color: #AAAAFB;
+    -fx-background-color: -secondary-color;
 }
 
 .radio-button {
