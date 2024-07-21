@@ -2,6 +2,7 @@ package style
 
 import global.Config
 import javafx.scene.Scene
+import javafx.scene.text.Font
 
 object Style {
   val dark: (String, String) = ("#2C2C2C", "#E0E0E0") // bg fg
@@ -13,7 +14,8 @@ object Style {
   private val styles = Map(
     CSS.MAIN -> "main.css",
     CSS.LIGHT -> "light.css",
-    CSS.DARK -> "dark.css"
+    CSS.DARK -> "dark.css",
+    CSS.MEDIA -> "media.css"
   )
 
   def getCurrentStyle: CSS = currentStyle
@@ -50,4 +52,7 @@ object Style {
       ""
     }
   }
+
+  val opFont : Font = Font.font("Consolas", 14)
+  val mdFont : Font = Font.font("SansSerif", 14)
 }
