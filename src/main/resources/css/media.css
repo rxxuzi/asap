@@ -1,0 +1,30 @@
+/* media.css */
+
+.control-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fg;
+    -fx-font-size: 18px;
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+}
+
+.control-button:hover {
+    -fx-background-color: -hover-bg;
+}
+
+.seek-bar, .volume-slider {
+    -fx-background-color: transparent;
+}
+
+.seek-bar .track, .volume-slider .track {
+    -fx-background-color: -track-bg;
+}
+
+.seek-bar .thumb, .volume-slider .thumb {
+    -fx-background-color: -thumb-color;
+}
+
+.time-label {
+    -fx-text-fill: -fg;
+    -fx-font-size: 14px;
+}
