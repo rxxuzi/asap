@@ -1,8 +1,20 @@
 /* light.css */
 
 .root {
-    -fx-background-color: #FFFFFF;
-    -fx-text-base-color: #333333;
+    -bg : #FFFFFF;
+    -fg : #333333;
+    
+    -fx-background-color: -bg;
+    -fx-text-base-color: -fg;
+
+    -hover-bg: rgba(0,0,0,0.1);
+    -track-bg: #d0d0d0;
+    -thumb-color: #A9FA9E;
+}
+
+.content-viewer{
+    -fx-background-color: -bg;
+    -fx-text-base-color: -fg;
 }
 
 .button {
@@ -15,7 +27,7 @@
 }
 
 .tab-pane {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: -bg;
 }
 
 .tab-pane > .tab-header-area > .headers-region > .tab {
@@ -27,7 +39,7 @@
 }
 
 .tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
-    -fx-text-fill: #333333;
+    -fx-text-fill: -fg;
 }
 
 .tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
@@ -35,7 +47,7 @@
 }
 
 .split-pane {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: -bg;
 }
 
 .split-pane-divider {
@@ -48,7 +60,7 @@
 }
 
 .text-area .content {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: -bg;
 }
 
 .scroll-bar:vertical,
@@ -62,7 +74,7 @@
 }
 
 .label {
-    -fx-text-fill: #333333;
+    -fx-text-fill: -fg;
 }
 
 .radio-button .radio {
@@ -123,7 +135,7 @@
 
 .list-cell:selected {
     -fx-background-color: #A1F2FE;
-    -fx-text-fill: #333333;
+    -fx-text-fill: -fg;
 }
 
 .tree-view {
@@ -137,7 +149,7 @@
 
 .tree-cell:selected {
     -fx-background-color: #A1F2FE;
-    -fx-text-fill: #333333;
+    -fx-text-fill: -fg;
 }
 
 .toggle-button {
