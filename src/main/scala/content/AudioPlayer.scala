@@ -152,7 +152,7 @@ class AudioPlayer(file: File) extends BorderPane {
     this.getStylesheets.add(Style.set(Style.getCurrentStyle))
 
     // Apply the player-specific CSS
-    this.getStylesheets.add(Style.set(CSS.PLAYER))
+    this.getStylesheets.add(Style.set(CSS.MEDIA))
 
     // Add custom class for additional styling if needed
     this.getStyleClass.add("content-viewer")
