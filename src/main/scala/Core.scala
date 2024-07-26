@@ -10,7 +10,9 @@ import javafx.scene.layout.{BorderPane, VBox}
 import javafx.stage.Stage
 import ssh.SSHManager
 import style.Style
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import _root_.global.Config.getClass
 
 final class Core extends Application {
   private val sshManager = new SSHManager()
@@ -59,7 +61,7 @@ final class Core extends Application {
       exit()
     })
 
-    stage.getIcons.add(new Image(getClass.getResourceAsStream("png/icon.png")))
+    stage.getIcons.add(new Image(getClass.getResourceAsStream(Config.iconPath)))
     stage.show()
   }
 

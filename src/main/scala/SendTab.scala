@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
-  private val maxSendFiles = 10
+  private val maxSendFiles = 20
   private val fileTreeView = new TreeView[RemoteFile]()
   fileTreeView.setShowRoot(false)
   fileTreeView.setCellFactory(Tree.createRemoteFileCellFactory())
@@ -32,8 +32,9 @@ class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
   remoteFilePathField.setPrefWidth(300)
 
   private val selectedFilesLabel = new Label("Selected Files:")
-  private val selectedFilesPath = new TextField()
-  selectedFilesPath.setEditable(true)
+  private val selectedFilesButton = new Button("View Selected Files")
+
+  private var selectedWindow: SelectedWindow = _
 
   def getContent: SplitPane = {
     remoteFilePathField.setPromptText("Remote directory path")
@@ -48,9 +49,28 @@ class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
       fileChooser.setTitle("Select Files")
       val selectedFiles = fileChooser.showOpenMultipleDialog(null)
       if (selectedFiles != null) {
-        localFilesList.clear()
-        localFilesList.addAll(selectedFiles.asScala.take(maxSendFiles).asJava)
-        updateSelectedFilesPath()
+        val remainingSlots = maxSendFiles - localFilesList.size()
+        val filesToAdd = selectedFiles.asScala.take(remainingSlots)
+        localFilesList.addAll(filesToAdd.asJava)
+        updateSelectedFilesButton()
+
+        if (selectedFiles.size() > remainingSlots) {
+          Log.warn(s"Only $remainingSlots files were added. Maximum of $maxSendFiles files allowed.")
+        }
+      }
+    })
+
+    selectedFilesButton.setOnAction(_ => {
+      if (selectedWindow == null || !selectedWindow.isShowing) {
+        selectedWindow = new SelectedWindow(localFilesList, files => {
+          localFilesList.clear()
+          localFilesList.addAll(files)
+          updateSelectedFilesButton()
+          Log.dbg("Update Selected Files : " + files.toString)
+        })
+        selectedWindow.show()
+      } else {
+        selectedWindow.toFront()
       }
     })
 
@@ -71,7 +91,6 @@ class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
           }.onComplete {
             case Success(_) => Platform.runLater(() => {
               sendButton.setDisable(false)
-              Log.info("All files sent successfully")
             })
             case Failure(ex) => Platform.runLater(() => {
               sendButton.setDisable(false)
@@ -101,7 +120,7 @@ class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
 
     clearButton.setOnAction(_ => {
       localFilesList.clear()
-      updateSelectedFilesPath()
+      updateSelectedFilesButton()
     })
 
     toggleGroup.selectedToggleProperty().addListener((_, _, newValue) => {
@@ -131,7 +150,7 @@ class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
     topPane.setPadding(new Insets(10))
     topPane.getChildren.addAll(
       new HBox(10, new Label("Local Files:"), chooseFilesButton, clearButton),
-      new HBox(10, selectedFilesLabel, selectedFilesPath),
+      new HBox(10, selectedFilesLabel, selectedFilesButton),
       new HBox(10, new Label("Remote Path:"), remoteFilePathField),
       new HBox(10, sendButton)
     )
@@ -150,9 +169,14 @@ class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
     mainSplitPane.getItems.addAll(topPane, leftPane)
     mainSplitPane.setDividerPositions(0.3)
 
-    updateFileTree()
+    updateSelectedFilesButton()
 
     mainSplitPane
+  }
+
+  private def updateSelectedFilesButton(): Unit = {
+    val count = localFilesList.size()
+    selectedFilesButton.setText(s"View Selected Files ($count)")
   }
 
   private def updateFileTree(): Unit = {
@@ -186,10 +210,5 @@ class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
     } else {
       Log.err("Not connected. Please connect to SSH first.")
     }
-  }
-
-  private def updateSelectedFilesPath(): Unit = {
-    val paths = localFilesList.asScala.map(_.getAbsolutePath).mkString(", ")
-    selectedFilesPath.setText(paths)
   }
 }

@@ -5,9 +5,7 @@ import javafx.application.Platform
 import javafx.geometry.{Insets, Orientation}
 import javafx.scene.Node
 import javafx.scene.control.*
-import javafx.scene.image.{Image, ImageView}
 import javafx.scene.layout.{BorderPane, HBox}
-import javafx.scene.text.Text
 import ssh.SSHManager
 
 import java.nio.file.{Files, Paths}
@@ -38,6 +36,8 @@ class ViewTab(sshManager: SSHManager) {
 
   private val saveButton = new Button("Save")
   saveButton.setDisable(true)
+
+  private val fileContentViewer = new FileContentViewer(800, 600) // Adjust size as needed
 
   def getContent: BorderPane = {
     val refreshButton = new Button("Refresh")
@@ -72,6 +72,7 @@ class ViewTab(sshManager: SSHManager) {
 
     content
   }
+
 
   private def downloadSelectedFile(): Unit = {
     if (sshManager.isConnected) {
@@ -212,22 +213,7 @@ class ViewTab(sshManager: SSHManager) {
           val tempFile = tempDir.resolve(file.name)
           ssh.get(file.fullPath, tempFile.toString)
 
-          val contentNode : Node = if (isImageFile(file.name)) {
-            val image = new Image(tempFile.toUri.toString)
-            val imageView = new ImageView(image)
-            imageView.setPreserveRatio(true)
-            imageView.setFitWidth(contentArea.getWidth - 20)
-            imageView
-          } else if (isTextFile(tempFile)) {
-            val content = new String(Files.readAllBytes(tempFile))
-            val textArea = new TextArea(content)
-            textArea.setEditable(false)
-            textArea.setWrapText(true)
-            textArea
-          } else {
-            val text = new Text(s"This is a binary file: ${file.name}\nFile size: ${Files.size(tempFile)} bytes")
-            text
-          }
+          val contentNode: Node = fileContentViewer.viewContent(tempFile.toFile)
 
           Platform.runLater(() => {
             contentArea.setContent(contentNode)
