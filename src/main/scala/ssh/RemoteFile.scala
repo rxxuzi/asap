@@ -8,10 +8,12 @@ case class RemoteFile(
                        isDirectory: Boolean,
                        size: Long = -1,
                        modifiedTime: Option[Instant] = None,
-                       depth: Int = 0
+                       depth: Int = 0,
+                       member: String = "~",
                      ) {
+
   override def toString: String =
     s"""
-       |${if (isDirectory) "[d]" else "[f]"} $fullPath
+       |${if (isDirectory) "[d]" else "[f]"} ($depth) [$member] $fullPath
        |""".stripMargin
 }
