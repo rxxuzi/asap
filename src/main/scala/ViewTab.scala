@@ -1,5 +1,5 @@
-import algorithm.SearchAlg
-import content.Tree
+import command.{BuildCommand, SortBy}
+import content.{FileContentViewer, Tree}
 import global.Log
 import javafx.application.Platform
 import javafx.geometry.{Insets, Orientation}
@@ -15,7 +15,7 @@ import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
-class ViewTab(sshManager: SSHManager) {
+final class ViewTab(sshManager: SSHManager) {
   private val fileTreeView = new TreeView[RemoteFile]()
   fileTreeView.setShowRoot(false)
   fileTreeView.setCellFactory(Tree.createRemoteFileCellFactory())
@@ -26,6 +26,11 @@ class ViewTab(sshManager: SSHManager) {
 
   private val searchField = new TextField()
   searchField.setPromptText("Search files...")
+
+  private val sortComboBox = new ComboBox[SortBy]()
+  sortComboBox.getItems.addAll(SortBy.values: _*)
+  sortComboBox.setValue(SortBy.NameAsc)
+  sortComboBox.setOnAction(_ => updateFileTreeAsync())
 
   private val showHiddenToggleGroup = new ToggleGroup()
   private val showHiddenRadio = new RadioButton("Show Hidden")
@@ -61,7 +66,7 @@ class ViewTab(sshManager: SSHManager) {
 
     val topPane = new HBox(10)
     topPane.setPadding(new Insets(10))
-    topPane.getChildren.addAll(refreshButton, searchField, searchButton, showHiddenRadio, hideHiddenRadio, toggleDownloadBtn)
+    topPane.getChildren.addAll(refreshButton, searchField, searchButton, sortComboBox, showHiddenRadio, hideHiddenRadio, toggleDownloadBtn)
 
     val content = new BorderPane()
     content.setTop(topPane)
@@ -108,7 +113,7 @@ class ViewTab(sshManager: SSHManager) {
 
   // ファイル検索メソッド
   private def performSearchAsync(): Unit = {
-    val searchTerm = searchField.getText.trim.toLowerCase
+    val searchTerm = searchField.getText.trim
     if (searchTerm.isEmpty) {
       Log.err("Please enter a search term.")
       return
@@ -117,16 +122,37 @@ class ViewTab(sshManager: SSHManager) {
     if (sshManager.isConnected) {
       Log.apt("Searching...")
       sshManager.withSSH { ssh =>
-        SearchAlg.searchAsync(ssh, searchTerm, showHiddenRadio.isSelected).foreach { searchResults =>
-          Platform.runLater(() => {
-            val rootItem = new TreeItem[RemoteFile](RemoteFile("Search Results", "", isDirectory = true, depth = -1))
-            searchResults.foreach { file =>
-              addSearchResultToTree(rootItem, file)
-            }
-            fileTreeView.setRoot(rootItem)
-            rootItem.setExpanded(true)
-            Log.info(s"Found ${searchResults.length} results for '$searchTerm'")
-          })
+        val hidden = showHiddenRadio.isSelected
+        val sortBy = sortComboBox.getValue
+        val searchCmd = BuildCommand.search(hidden, sortBy, searchTerm)
+
+        Future {
+          Try {
+            val result = ssh.exec(searchCmd)
+            val homeDir = ssh.exec("echo $HOME").trim
+            val searchResults = result.split("\n").filter(_.nonEmpty).map { path =>
+              val isDirectory = path.endsWith("/")
+              val name = Paths.get(path).getFileName.toString
+              RemoteFile(name = name, fullPath = path, isDirectory = isDirectory)
+            }.toList
+
+            Platform.runLater(() => {
+              val rootItem = new TreeItem[RemoteFile](RemoteFile("Search Results", "", isDirectory = true, depth = -1))
+              searchResults.foreach { file =>
+                addSearchResultToTree(rootItem, file, homeDir)
+              }
+              fileTreeView.setRoot(rootItem)
+              rootItem.setExpanded(true)
+              rootItem.getChildren.forEach(_.setExpanded(false))
+              val validResultCount = searchResults.size
+              Log.info(s"Found $validResultCount valid results for '$searchTerm'")
+            })
+          }
+        }.recover {
+          case ex: Exception =>
+            Platform.runLater(() => {
+              Log.err(s"Search failed: ${ex.getMessage}")
+            })
         }
       }
     } else {
@@ -134,8 +160,30 @@ class ViewTab(sshManager: SSHManager) {
     }
   }
 
+  private def addSearchResultToTree(root: TreeItem[RemoteFile], file: RemoteFile, homeDir: String): Unit = {
+    val relativePath = file.fullPath.replaceFirst(s"^$homeDir/", "")
+    val parts = relativePath.split("/")
+    var current = root
+    parts.init.foreach { part =>
+      current = current.getChildren.asScala.find(_.getValue.name == part) match {
+        case Some(existing) => existing
+        case None =>
+          val newItem = new TreeItem(RemoteFile(part, s"$homeDir/${parts.take(parts.indexOf(part) + 1).mkString("/")}", isDirectory = true))
+          current.getChildren.add(newItem)
+          newItem
+      }
+    }
+    val fileItem = new TreeItem(file)
+    current.getChildren.add(fileItem)
+  }
+
+  private def countValidItems(item: TreeItem[RemoteFile]): Int = {
+    1 + item.getChildren.asScala.map(countValidItems).sum
+  }
+
   // ファイルツリーの非同期更新メソッド
   private def updateFileTreeAsync(): Unit = {
+    searchField.setText("")
     if (sshManager.isConnected) {
       Log.apt("Refreshing file tree...")
       Future {
@@ -143,21 +191,25 @@ class ViewTab(sshManager: SSHManager) {
           Try {
             val homeDir = ssh.exec("echo $HOME").trim
             val showHidden = showHiddenRadio.isSelected
-            val findCommand = if (showHidden) {
-              s"find $homeDir"
-            } else {
-              s"find $homeDir -not -path '*/.*'"
-            }
-            val fileList = ssh.exec(findCommand).split("\n").filter(_.nonEmpty)
+            val sortBy = sortComboBox.getValue
+            val findCommand = BuildCommand.sort(showHidden, sortBy)
+            val fileList = ssh.exec(findCommand).split("\n").filter(_.nonEmpty).map(_.trim)
             val rootItem = new TreeItem[RemoteFile](RemoteFile("Root", homeDir, isDirectory = true))
 
             fileList.foreach { path =>
-              val relativePath = path.replace(homeDir, "").stripPrefix("/")
-              addPathToTree(rootItem, relativePath, path, homeDir)
+              if (path.nonEmpty && path != homeDir) { // 空のパスとホームディレクトリ自体をスキップ
+                val relativePath = path.replace(homeDir, "").stripPrefix("/")
+                if (relativePath.nonEmpty) { // 相対パスが空でない場合のみ追加
+                  addPathToTree(rootItem, relativePath, path, homeDir)
+                }
+              }
             }
 
             Platform.runLater(() => {
               fileTreeView.setRoot(rootItem)
+              // ルートアイテムとその直下のアイテムのみを展開
+              rootItem.setExpanded(true)
+              rootItem.getChildren.forEach(_.setExpanded(false))
               Log.info("Remote file tree updated.")
             })
           }
@@ -184,50 +236,47 @@ class ViewTab(sshManager: SSHManager) {
     root
   }
 
-  private def addSearchResultToTree(root: TreeItem[RemoteFile], file: RemoteFile): Unit = {
-    val path = Paths.get(file.fullPath)
-    val parentPath = path.getParent
-    val relativePath = if (parentPath != null) parentPath.getFileName.toString + "/" + file.name else file.name
-
-    val parts = relativePath.split("/")
-    var current = root
-    var currentDepth = root.getValue.depth
-
-    parts.init.foreach { part =>
-      currentDepth += 1
-      current = current.getChildren.asScala.find(_.getValue.name == part) match {
-        case Some(existing) => existing
-        case None =>
-          val newItem = new TreeItem(RemoteFile(part, "", isDirectory = true, depth = currentDepth))
-          current.getChildren.add(newItem)
-          newItem
-      }
-    }
-
-    val fileItem = new TreeItem(file.copy(name = parts.last))
-    current.getChildren.add(fileItem)
-  }
-
   // ツリーにパスを追加するメソッド
   private def addPathToTree(root: TreeItem[RemoteFile], relativePath: String, fullPath: String, homeDir: String): Unit = {
     val parts = relativePath.split("/")
     var current = root
+    var currentDepth = root.getValue.depth
+    var currentParent = root.getValue.fullPath
+    var currentMember = "~"
 
     parts.zipWithIndex.foreach { case (part, index) =>
       val isLast = index == parts.length - 1
       val isDirectory = !isLast || fullPath.endsWith("/")
+      currentDepth += 1
 
-      // 初期状態では最小限の情報でRemoteFileを作成
+      // RemoteFile の初期状態（最小限の情報）
       val initialSize = if (isDirectory) 0 else -1L
+      val newPath = s"$homeDir/${parts.take(index + 1).mkString("/")}"
 
       current = current.getChildren.asScala.find(_.getValue.name == part) match {
-        case Some(existing) => existing
+        case Some(existing) =>
+          // 既存のアイテムを新しい depth と member で更新
+          val updatedFile = existing.getValue.copy(depth = currentDepth, member = currentMember)
+          existing.setValue(updatedFile)
+          existing
         case None =>
-          val newPath = s"$homeDir/${parts.take(index + 1).mkString("/")}"
-          val newItem = new TreeItem(RemoteFile(part, newPath, isDirectory, initialSize))
+          val newItem = new TreeItem(RemoteFile(
+            name = part,
+            fullPath = newPath,
+            isDirectory = isDirectory,
+            size = initialSize,
+            depth = currentDepth,
+            member = currentMember
+          ))
           current.getChildren.add(newItem)
-          if (isDirectory) newItem.setExpanded(true)
+          // 新しく追加されたアイテムは閉じた状態にする
+          newItem.setExpanded(false)
           newItem
+      }
+
+      // 次の繰り返しのために currentMember を更新
+      if (isDirectory) {
+        currentMember = part
       }
     }
   }
