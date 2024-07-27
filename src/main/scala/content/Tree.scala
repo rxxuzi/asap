@@ -3,6 +3,7 @@ package content
 import javafx.scene.control.cell.TextFieldTreeCell
 import javafx.scene.control.{TreeCell, TreeItem, TreeView}
 import javafx.util.{Callback, StringConverter}
+import ssh.RemoteFile
 
 import scala.jdk.CollectionConverters.*
 

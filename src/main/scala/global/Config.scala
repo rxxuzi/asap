@@ -8,6 +8,7 @@ import scala.util.{Try, Using}
 case class SshConfig(autoConnect: Boolean, configFile: String)
 case class OutConfig(cache: Boolean, log: Boolean, dbg: Boolean)
 case class DirConfig(downloadsDir: String, cacheDir: String, logDir:String, dbgDir: String)
+case class GenConfig(zipper: Boolean, encrypted: Boolean)
 
 class Config(
               val project: String,
@@ -15,7 +16,8 @@ class Config(
               var dark: Boolean,
               val ssh: SshConfig,
               val out: OutConfig,
-              val dir: DirConfig
+              val dir: DirConfig,
+              val gen: GenConfig
             )
 
 object Config {
@@ -41,6 +43,9 @@ object Config {
       cacheDir = "cache",
       logDir = "log",
       dbgDir = "debug"
+    ),
+    gen = GenConfig(
+      false, false
     )
   )
 
@@ -60,6 +65,7 @@ object Config {
   def ssh: SshConfig = instance.ssh
   def out: OutConfig = instance.out
   def dir: DirConfig = instance.dir
+  def gen: GenConfig = instance.gen
 
   def initialize(): Unit = {
     println(s"Config initialized with project: ${instance.project}")
@@ -69,7 +75,7 @@ object Config {
 
   def toJson: String = new GsonBuilder().setPrettyPrinting().create().toJson(instance)
 
-  def gen(): Unit = {
+  def write(): Unit = {
     val gson = new GsonBuilder().setPrettyPrinting().create()
     val json = gson.toJson(instance)
     Using(new PrintWriter(new FileWriter(configPath))) { writer =>

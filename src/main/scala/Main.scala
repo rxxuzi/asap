@@ -1,4 +1,5 @@
-import global.{Config, IO, Log}
+import global.{Config, Log}
+import io.IO
 import javafx.application.Application
 
 object Main {

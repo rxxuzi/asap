@@ -48,6 +48,6 @@ object Log {
   def err(msg: String) : Unit = append(Log.Error, msg)
   def warn(msg: String) : Unit = append(Log.Warn, msg)
   def info(msg: String) : Unit = append(Log.Info, msg)
-  def dbg(msg: String) : Unit = append(Log.Debug, msg)
+  def dbg(msg: String) : Unit = {append(Log.Debug, msg); println(msg)}
   def apt(msg: String) : Unit = Status.appendText(msg)
 }

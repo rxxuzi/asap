@@ -13,11 +13,14 @@ import style.Style
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import _root_.global.Config.getClass
+import util.Downloads
 
 final class Core extends Application {
   private val sshManager = new SSHManager()
   private val titleProperty = new SimpleStringProperty("ASAP")
   private var stage: Stage = _
+
+  Downloads.setSSHManager(sshManager)
 
   if (Config.ssh.autoConnect) {
     sshManager.connect(Config.ssh.configFile) match {
@@ -70,10 +73,11 @@ final class Core extends Application {
 
     val homeTab = createTab("Home", new HomeTab(sshManager, scene).getContent)
     val sendTab = createTab("Send", new SendTab(sshManager).getContent)
-    val viewTab = createTab("View", new ViewTab(sshManager).getContent)
     val execTab = createTab("Exec", new ExecTab(sshManager).getContent)
+    val viewTab = createTab("View", new ViewTab(sshManager).getContent)
+    val downloadTab = createTab("Download", new DownloadTab().getContent)
 
-    tabPane.getTabs.addAll(homeTab, sendTab, viewTab, execTab)
+    tabPane.getTabs.addAll(homeTab, sendTab, viewTab, downloadTab, execTab)
     tabPane
   }
 
@@ -86,6 +90,6 @@ final class Core extends Application {
 
   private def exit(): Unit = {
     Style.setStyleConfig()
-    Config.gen()
+    Config.write()
   }
 }

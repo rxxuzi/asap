@@ -86,11 +86,19 @@
 }
 
 .progress-bar > .bar {
-    -fx-background-color: -primary-color;
+    -fx-background-color: -highlight-color;
 }
 
 .combo-box {
+    -fx-background-color: white;
+    -fx-border-color: -secondary-color;
     -fx-border-radius: 0;
+    -fx-background-radius: 0;
+}
+
+.combo-box .arrow-button {
+    -fx-background-color: -secondary-color;
+    -fx-background-radius: 0;
 }
 
 .list-view {

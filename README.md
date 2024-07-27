@@ -1,9 +1,10 @@
 <div align="center">
 <img alt="ASAP Logo" src="doc/asap.svg" width="600"/>
 
-![MIT License Badge](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.0-blue)
+![GitHub License](https://img.shields.io/github/license/rxxuzi/asap)
+![GitHub Tag](https://img.shields.io/github/v/tag/rxxuzi/asap)
 ![Author](https://img.shields.io/badge/author-rxxuzi-70f)
+
 </div>
 
 # asap

@@ -6,7 +6,9 @@ import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.sftp.client.{SftpClient, SftpClientFactory}
 
 import java.io.*
+import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Paths, StandardCopyOption}
+import java.time.Instant
 import java.util
 import java.util.EnumSet
 import scala.jdk.CollectionConverters.*
@@ -132,6 +134,98 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
     }
   }
 
+  /** Retrieves a file from the remote server using RemoteFile.
+   *
+   * @param remoteFile The RemoteFile object representing the file on the remote server.
+   * @param localPath  The path where the file should be saved locally.
+   */
+  def get(remoteFile: RemoteFile, localPath: String): Unit = withSftpClient { client =>
+    val in = client.read(remoteFile.fullPath)
+    try {
+      Files.copy(in, Paths.get(localPath), StandardCopyOption.REPLACE_EXISTING)
+    } finally {
+      in.close()
+    }
+  }
+
+  /**
+   * Gets the size of a file on the remote server.
+   *
+   * @param path The full path of the file on the remote server.
+   * @return The size of the file in bytes, or -1 if the size couldn't be determined.
+   */
+  private def getFileSize(path: String): Long = {
+    exec(s"stat -c %s '$path'").trim.toLongOption.getOrElse(-1L)
+  }
+
+  /**
+   * Checks if a path on the remote server is a directory.
+   *
+   * @param path The full path to check on the remote server.
+   * @return true if the path is a directory, false otherwise.
+   */
+  private def isDirectory(path: String): Boolean = {
+    exec(s"test -d '$path' && echo 'true' || echo 'false'").trim.toBoolean
+  }
+
+  /** Lists files and directories in the specified path on the remote server.
+   *
+   * @param path The path to list.
+   * @return A List of RemoteFile objects representing the files and directories.
+   */
+  def listFiles(path: String): List[RemoteFile] = withSftpClient { client =>
+    val homeDir = exec("echo $HOME").trim
+    client.readDir(path).asScala.toList.map { entry =>
+      val attrs = entry.getAttributes
+      val isDirectory = attrs.isDirectory
+      val size = attrs.getSize
+      val fileName = entry.getFilename
+      val fullPath = if (path.endsWith("/")) path + fileName else path + "/" + fileName
+      val modifiedTime = Option(attrs.getModifyTime).map(fileTimeToInstant)
+      val depth = fullPath.count(_ == '/') - homeDir.count(_ == '/')
+      RemoteFile(fileName, fullPath, isDirectory, size, modifiedTime, depth)
+    }
+  }
+
+  /**
+   * Updates the RemoteFile object with complete information.
+   *
+   * @param remoteFile The RemoteFile object to update.
+   * @return An updated RemoteFile object with complete information.
+   */
+  def updateRemoteFile(remoteFile: RemoteFile): RemoteFile = {
+    if (remoteFile.size == -1 || remoteFile.modifiedTime.isEmpty) {
+      val updatedSize = getFileSize(remoteFile.fullPath)
+      val updatedIsDirectory = isDirectory(remoteFile.fullPath)
+      val updatedModifiedTime = getModifiedTime(remoteFile.fullPath)
+      val homeDir = exec("echo $HOME").trim
+      val updatedDepth = remoteFile.fullPath.count(_ == '/') - homeDir.count(_ == '/')
+      remoteFile.copy(
+        size = updatedSize,
+        isDirectory = updatedIsDirectory,
+        modifiedTime = updatedModifiedTime,
+        depth = updatedDepth
+      )
+    } else {
+      remoteFile
+    }
+  }
+
+  // FileTimeをInstantに変換するヘルパーメソッド
+  private def fileTimeToInstant(fileTime: FileTime): Instant = {
+    fileTime.toInstant
+  }
+
+  /**
+   * Gets the modified time of a file on the remote server.
+   *
+   * @param path The full path of the file on the remote server.
+   * @return The modified time as an Option[Instant], or None if it couldn't be determined.
+   */
+  private def getModifiedTime(path: String): Option[Instant] = {
+    exec(s"stat -c %Y '$path'").trim.toLongOption.map(Instant.ofEpochSecond)
+  }
+
   /** Executes a command on the remote server.
    *
    * @param command The command to execute.
@@ -147,23 +241,6 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
       outputStream.toString
     } finally {
       channel.close()
-    }
-  }
-
-  /** Lists files and directories in the specified path on the remote server.
-   *
-   * @param path The path to list.
-   * @return A List of RSF objects representing the files and directories.
-   */
-  def listFiles(path: String): List[RSF] = withSftpClient { client =>
-    client.readDir(path).asScala.toList.map { entry =>
-      val attrs = entry.getAttributes
-      val isDirectory = attrs.isDirectory
-      val size = if (isDirectory) -1L else attrs.getSize
-      val fileName = entry.getFilename
-      val isHidden = fileName.startsWith(".")
-      val owner = attrs.getOwner
-      RSF(fileName, size, isDirectory, isHidden, owner)
     }
   }
 
