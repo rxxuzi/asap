@@ -1,4 +1,4 @@
-import content.{RemoteFile, Tree}
+import content.Tree
 import global.Log
 import javafx.application.Platform
 import javafx.collections.FXCollections
@@ -6,7 +6,7 @@ import javafx.geometry.{Insets, Orientation}
 import javafx.scene.control.*
 import javafx.scene.layout.{HBox, Priority, VBox}
 import javafx.stage.FileChooser
-import ssh.SSHManager
+import ssh.{RemoteFile, SSHManager}
 
 import java.io.File
 import scala.concurrent.{ExecutionContext, Future}
