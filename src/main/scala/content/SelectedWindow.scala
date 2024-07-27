@@ -1,5 +1,7 @@
-import global.Config
+package content
+
 import global.Config.getClass
+import global.{Config, Log}
 import javafx.collections.{FXCollections, ObservableList}
 import javafx.geometry.{Insets, Orientation, Pos}
 import javafx.scene.Scene
@@ -8,12 +10,11 @@ import javafx.scene.image.Image
 import javafx.scene.layout.{HBox, Priority, VBox}
 import javafx.stage.Stage
 import style.Style
-import global.Log
 
 import java.io.File
 import scala.jdk.CollectionConverters.*
 
-class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList[File] => Unit) extends Stage {
+final class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList[File] => Unit) extends Stage {
   private val listView = new ListView[File](files)
   listView.getSelectionModel.setSelectionMode(SelectionMode.MULTIPLE)
 

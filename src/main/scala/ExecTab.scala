@@ -6,7 +6,7 @@ import javafx.scene.input.KeyCode
 import javafx.scene.layout.{HBox, VBox}
 import ssh.SSHManager
 
-class ExecTab(sshManager: SSHManager) {
+final class ExecTab(sshManager: SSHManager) {
   private val commandField = new TextField()
   commandField.setPromptText("Enter command")
 

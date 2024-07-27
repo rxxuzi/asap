@@ -29,8 +29,8 @@ object Log {
     mk = true
   }
 
-  private def append(logType: Log, message: String): Unit = {
-    Status.appendText(message)
+  private def append(logType: Log, message: String, at: Boolean): Unit = {
+    if (at) Status.appendText(message)
     if (mk) {
       Future {
         val writer = new BufferedWriter(new FileWriter(logFilePath, true))
@@ -44,10 +44,12 @@ object Log {
       }
     }
   }
+  
+  private def append(log: Log, message: String) : Unit = append(log,message,true)
 
-  def err(msg: String) : Unit = append(Log.Error, msg)
+  def err(msg: String) : Unit = {append(Log.Error, msg); System.err.println(msg)}
   def warn(msg: String) : Unit = append(Log.Warn, msg)
   def info(msg: String) : Unit = append(Log.Info, msg)
-  def dbg(msg: String) : Unit = {append(Log.Debug, msg); println(msg)}
+  def dbg(msg: String) : Unit = {append(Log.Debug, msg, false); println(msg)}
   def apt(msg: String) : Unit = Status.appendText(msg)
 }

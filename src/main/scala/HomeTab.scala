@@ -6,7 +6,7 @@ import javafx.scene.layout.{HBox, VBox}
 import ssh.SSHManager
 import style.{CSS, Style}
 
-class HomeTab(sshManager: SSHManager, scene: Scene) {
+final class HomeTab(sshManager: SSHManager, scene: Scene) {
   private val connectButton = new Button("Connect")
   private val sshConfigPath = new TextField()
 

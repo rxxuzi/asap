@@ -1,4 +1,5 @@
-import content.{AudioPlayer, VideoPlayer}
+package content
+
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.control.{ScrollPane, TextArea}
@@ -18,7 +19,7 @@ final class FileContentViewer(maxWidth: Double, maxHeight: Double) {
   private val videoExtensions = Set(".mp4", ".avi", ".mov", ".wmv")
   private val textExtensions = Set(".txt", ".py", ".html", ".css", ".js", ".json", ".xml", ".md", ".scala", ".java", ".c", ".cpp", ".h", ".sh", ".bat", ".csv")
 
-  private val binaryImage = new Image(getClass.getResourceAsStream("png/object.png"))
+  private val binaryImage = new Image(getClass.getResourceAsStream("/png/object.png"))
 
   def viewContent(file: File): Node = {
     val extension = getFileExtension(file.getName).toLowerCase

@@ -1,4 +1,4 @@
-import content.Tree
+import content.{SelectedWindow, Tree}
 import global.Log
 import javafx.application.Platform
 import javafx.collections.FXCollections
@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
-class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
+final class SendTab(sshManager: SSHManager)(implicit ec: ExecutionContext) {
   private val maxSendFiles = 20
   private val fileTreeView = new TreeView[RemoteFile]()
   fileTreeView.setShowRoot(false)

@@ -1,4 +1,4 @@
-ThisBuild / version := "1.2"
+ThisBuild / version := "1.4"
 ThisBuild / scalaVersion := "3.3.1"
 
 // Path to JavaFX SDK

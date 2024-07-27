@@ -14,7 +14,7 @@ import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success}
 
-class DownloadTab {
+final class DownloadTab {
   private val listView = new ListView[RemoteFile](Downloads.getDownloadList)
   private val sizeInfoLabel = new Label("Total size: 0 B")
 
