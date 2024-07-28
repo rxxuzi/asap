@@ -13,7 +13,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import scala.util.Try
 
-final class FileContentViewer(maxWidth: Double, maxHeight: Double) {
+class LocalFileContentViewer(maxWidth: Double, maxHeight: Double) {
   private val imageExtensions = Set(".jpg", ".jpeg", ".png", ".gif", ".bmp")
   private val audioExtensions = Set(".mp3", ".wav", ".aac", ".ogg")
   private val videoExtensions = Set(".mp4", ".avi", ".mov", ".wmv")

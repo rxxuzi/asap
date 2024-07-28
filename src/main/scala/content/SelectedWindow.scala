@@ -27,10 +27,20 @@ final class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList
   private val scene = new Scene(new VBox(), 1000, 600)
   this.setScene(scene)
   this.setTitle("Selected Files")
-  this.getIcons.add(new Image(getClass.getResourceAsStream(Config.iconPath)))
+  try {
+    val iconStream = getClass.getResourceAsStream(Config.iconPath)
+    if (iconStream != null) {
+      this.getIcons.add(new Image(iconStream))
+    } else {
+      Log.warn(s"Icon file not found: ${Config.iconPath}")
+    }
+  } catch {
+    case ex: Exception => Log.err(s"Failed to load icon: ${ex.getMessage}")
+  }
   Style.updateSceneStyle(scene) // set style
 
-  private var viewer = new FileContentViewer(scene.getWidth * 0.7 * 0.9, scene.getHeight * 0.9)
+  private var viewer = new LocalFileContentViewer(scene.getWidth * 0.7 * 0.9, scene.getHeight * 0.9)
+
 
   removeButton.setOnAction(_ => {
     val selected: ObservableList[File] = listView.getSelectionModel.getSelectedItems
@@ -76,12 +86,12 @@ final class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList
   scene.setRoot(splitPane)
 
   scene.widthProperty().addListener((_, _, newValue) => {
-    viewer = new FileContentViewer(newValue.doubleValue() * 0.7 * 0.9, scene.getHeight * 0.9)
+    viewer = new LocalFileContentViewer(newValue.doubleValue() * 0.7 * 0.9, scene.getHeight * 0.9)
     updatePreview()
   })
 
   scene.heightProperty().addListener((_, _, newValue) => {
-    viewer = new FileContentViewer(scene.getWidth * 0.7 * 0.9, newValue.doubleValue() * 0.9)
+    viewer = new LocalFileContentViewer(scene.getWidth * 0.7 * 0.9, newValue.doubleValue() * 0.9)
     updatePreview()
   })
 

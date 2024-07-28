@@ -1,5 +1,5 @@
 import command.{BuildCommand, SortBy}
-import content.{FileContentViewer, Tree}
+import content.{RemoteFileContentViewer, Tree}
 import global.Log
 import javafx.application.Platform
 import javafx.geometry.{Insets, Orientation}
@@ -9,7 +9,7 @@ import javafx.scene.layout.{BorderPane, HBox}
 import ssh.{RemoteFile, SSHManager}
 import util.Downloads
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Paths
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
@@ -42,7 +42,7 @@ final class ViewTab(sshManager: SSHManager) {
   private val toggleDownloadBtn = new Button("+Downloads")
   toggleDownloadBtn.setDisable(true)
 
-  private val fileContentViewer = new FileContentViewer(800, 600)
+  private var remoteFileContentViewer: Option[RemoteFileContentViewer] = None
 
   Platform.runLater(() => {
     updateFileTreeAsync()
@@ -80,14 +80,17 @@ final class ViewTab(sshManager: SSHManager) {
     if (newValue != null) {
       val file = newValue.getValue
       if (!file.isDirectory) {
-        // 即座にファイル内容を表示
-        viewFileContent(file)
-        toggleDownloadBtn.setDisable(false)
-        updateToggleButtonText(file)
-
         // 非同期でファイル情報を更新
-        Future {
-          updateFileInfoAsync(file)
+        updateFileInfoAsync(file).onComplete {
+          case Success(updatedFile) =>
+            Platform.runLater(() => {
+              newValue.setValue(updatedFile)
+              viewFileContent(updatedFile)
+              toggleDownloadBtn.setDisable(false)
+              updateToggleButtonText(updatedFile)
+            })
+          case Failure(ex) =>
+            Log.err(s"Failed to update file information: ${ex.getMessage}")
         }
       } else {
         toggleDownloadBtn.setDisable(true)
@@ -95,6 +98,28 @@ final class ViewTab(sshManager: SSHManager) {
       }
     }
   })
+
+  // ファイル情報を非同期で更新するメソッド
+  private def updateFileInfoAsync(file: RemoteFile): Future[RemoteFile] = {
+    Future {
+      sshManager.withSSH { ssh =>
+        val sizeResult = Try {
+          ssh.exec(s"wc -c '${file.fullPath}' | awk '{print $$1}'").trim.toLongOption.getOrElse(-1L)
+        }
+        sizeResult match {
+          case Success(size) => file.copy(size = size)
+          case Failure(ex) =>
+            Log.err(s"Failed to get file size for ${file.name}: ${ex.getMessage}")
+            file // Return the original file if size retrieval fails
+        }
+      }
+    }.flatMap {
+      case Success(updatedFile) => Future.successful(updatedFile)
+      case Failure(ex) =>
+        Log.err(s"Failed to update file info for ${file.name}: ${ex.getMessage}")
+        Future.successful(file) // Return the original file if the update fails
+    }
+  }
 
   // ダウンロードリストの切り替えメソッド
   private def toggleDownloadList(): Unit = {
@@ -290,47 +315,27 @@ final class ViewTab(sshManager: SSHManager) {
     }
   }
 
-  // ファイル情報を非同期で更新するメソッド
-  private def updateFileInfoAsync(file: RemoteFile): Unit = {
-    Downloads.updateFileInfoAsync(file).onComplete {
-      case Success(updatedFile) =>
-        Platform.runLater(() => {
-          // TreeViewのアイテムを更新
-          val selectedItem = fileTreeView.getSelectionModel.getSelectedItem
-          if (selectedItem != null && selectedItem.getValue == file) {
-            selectedItem.setValue(updatedFile)
-          }
-        })
-      case Failure(ex) =>
-        Log.err(s"Failed to update file information: ${ex.getMessage}")
-    }
-  }
-
   // ファイル内容の表示メソッド（非同期処理）
   private def viewFileContent(file: RemoteFile): Unit = {
     if (sshManager.isConnected) {
-      Future {
-        sshManager.withSSH { ssh =>
-          Try {
-            val tempDir = Files.createTempDirectory("ssh-viewer")
-            val tempFile = tempDir.resolve(file.name)
-            ssh.get(file.fullPath, tempFile.toString)
+      sshManager.withSSH { ssh =>
+        if (remoteFileContentViewer.isEmpty) {
+          remoteFileContentViewer = Some(new RemoteFileContentViewer(800, 600, ssh))
+        }
 
-            val contentNode: Node = fileContentViewer.viewContent(tempFile.toFile)
-
-            Platform.runLater(() => {
-              contentArea.setContent(contentNode)
-              Log.info(s"Viewing file: ${file.name}")
-            })
-
-            Files.delete(tempFile)
-            Files.delete(tempDir)
+        remoteFileContentViewer.foreach { viewer =>
+          viewer.viewContent(file).onComplete {
+            case Success(contentNode) =>
+              Platform.runLater(() => {
+                contentArea.setContent(contentNode)
+                Log.info(s"Viewing file: ${file.name}")
+              })
+            case Failure(ex) =>
+              Platform.runLater(() => {
+                Log.err(s"Failed to view file: ${ex.getMessage}")
+              })
           }
         }
-      }.recover {
-        case ex => Platform.runLater(() => {
-          Log.err(s"Failed to view file: ${ex.getMessage}")
-        })
       }
     } else {
       Log.err("Not connected. Please connect to SSH first.")

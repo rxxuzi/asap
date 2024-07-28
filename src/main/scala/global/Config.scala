@@ -23,7 +23,7 @@ class Config(
 object Config {
   var configPath = "asap.json"
   val defaultLogDir = "log"
-  val iconPath = "png/icon.png"
+  val iconPath = "/png/icon.png"
 
   private lazy val instance: Config = loadConfig(configPath).getOrElse(defaultConfig)
 
