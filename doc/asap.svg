@@ -72,5 +72,5 @@
         </circle>
     </g>
 
-    <text x="150" y="85" font-family="'IBM Plex Mono', monospace" font-size="64" fill="#333" text-anchor="start" filter="url(#softGlow)">asap</text>
+    <text x="150" y="85" font-family="'IBM Plex Mono', monospace" font-size="60" fill="#333" text-anchor="start" filter="url(#softGlow)">asap</text>
 </svg>
