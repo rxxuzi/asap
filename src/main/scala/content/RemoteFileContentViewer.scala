@@ -8,8 +8,9 @@ import javafx.scene.layout.{StackPane, VBox}
 import javafx.scene.text.Text
 import ssh.{RemoteFile, SSH}
 import style.Style
+import global.Config
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -20,7 +21,6 @@ final class RemoteFileContentViewer(maxWidth: Double, maxHeight: Double, ssh: SS
   private val textExtensions = Set(".txt", ".py", ".html", ".css", ".js", ".json", ".xml", ".md", ".scala", ".java", ".c", ".cpp", ".h", ".sh", ".bat", ".csv")
 
   private val binaryImage = new Image(getClass.getResourceAsStream("/png/object.png"))
-  val tmpDir = "asap-ssh-viewer"
 
   def viewContent(file: RemoteFile): Future[Node] = {
     val extension = getFileExtension(file.name).toLowerCase
@@ -75,7 +75,7 @@ final class RemoteFileContentViewer(maxWidth: Double, maxHeight: Double, ssh: SS
   }
 
   private def viewMediaContent(file: RemoteFile): Future[Node] = Future {
-    val tempDir = Files.createTempDirectory(tmpDir)
+    val tempDir : Path = Config.tmpDir
     val tempFile = tempDir.resolve(file.name)
 
     ssh.get(file.fullPath, tempFile.toString)
@@ -101,7 +101,7 @@ final class RemoteFileContentViewer(maxWidth: Double, maxHeight: Double, ssh: SS
   }
 
   private def viewImageContent(file: RemoteFile): Future[Node] = Future {
-    val tempDir = Files.createTempDirectory(tmpDir)
+    val tempDir : Path = Config.tmpDir
     val tempFile = tempDir.resolve(file.name)
 
     try {

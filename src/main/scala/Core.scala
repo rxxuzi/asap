@@ -91,5 +91,6 @@ final class Core extends Application {
   private def exit(): Unit = {
     Style.setStyleConfig()
     Config.write()
+    io.IO.rmdirs(Config.tmpDir)
   }
 }

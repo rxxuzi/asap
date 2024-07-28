@@ -1,9 +1,8 @@
 package io;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 
 public class IO {
 
@@ -81,5 +80,36 @@ public class IO {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * Recursively deletes a directory and all its contents.
+     *
+     * <p>This method deletes the specified directory and all files and subdirectories within it.
+     * If an error occurs during deletion, the method returns {@code false}.
+     *
+     * @param path the path to the directory to be deleted
+     * @return {@code true} if the directory and all contents were successfully deleted,
+     *         {@code false} if an error occurred during deletion
+     */
+    public static boolean rmdirs(Path path) {
+        try {
+            Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
     }
 }
