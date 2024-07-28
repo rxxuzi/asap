@@ -1,7 +1,7 @@
 import global.{Config, Log}
 import io.IO
 import javafx.application.Application
-
+import ssh.SSH
 object Main {
   private def init(): Unit = {
     Config.initialize()
@@ -12,6 +12,7 @@ object Main {
       IO.mkdir(Config.dir.logDir)
       Log.init(Config.dir.logDir)
     }
+    SSH.keepAliveEnabled = Config.ssh.keepAlive
   }
 
   def main(args: Array[String]): Unit = {

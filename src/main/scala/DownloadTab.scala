@@ -96,11 +96,7 @@ final class DownloadTab {
     Future {
       files.zipWithIndex.foreach { case (file, index) =>
         Downloads.getSSHManager.withSSH { ssh =>
-          val localPath = new File(downloadDir, file.name).getAbsolutePath
-          ssh.get(file, localPath)
-          Platform.runLater(() => {
-            // 進捗更新のコードをここに追加する場合
-          })
+          ssh.get(file, downloadDir.getAbsolutePath)
         }
       }
     }.onComplete {

@@ -5,7 +5,7 @@ import com.google.gson.{Gson, GsonBuilder}
 import java.io.{FileWriter, PrintWriter}
 import scala.util.{Try, Using}
 
-case class SshConfig(autoConnect: Boolean, configFile: String)
+case class SshConfig(autoConnect: Boolean, configFile: String, keepAlive: Boolean)
 case class OutConfig(cache: Boolean, log: Boolean, dbg: Boolean)
 case class DirConfig(downloadsDir: String, cacheDir: String, logDir:String, dbgDir: String)
 case class GenConfig(zipper: Boolean, encrypted: Boolean)
@@ -32,7 +32,11 @@ object Config {
     project = "Asap",
     css = true,
     dark = true,
-    ssh = SshConfig(autoConnect = false, configFile = "ssh.json"),
+    ssh = SshConfig(
+      autoConnect = false, 
+      configFile = "ssh.json", 
+      keepAlive = false
+    ),
     out = OutConfig(
       cache = false,
       log = true,

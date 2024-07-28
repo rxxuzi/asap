@@ -9,6 +9,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 /**
+ * <h1>Downloads</h1>
  * Utility object for managing downloads via SSH.
  */
 object Downloads {
@@ -70,7 +71,7 @@ object Downloads {
    */
   def updateFileInfoAsync(file: RemoteFile): Future[RemoteFile] = {
     Future {
-      sshManager.withSSH(_.updateRemoteFile(file)) match {
+      sshManager.withSSH(ssh => file.update(ssh)) match {
         case Success(updatedFile) =>
           val index = downloadList.indexOf(file)
           if (index != -1) {
