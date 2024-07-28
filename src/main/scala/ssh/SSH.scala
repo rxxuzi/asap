@@ -8,10 +8,10 @@ import org.apache.sshd.sftp.client.{SftpClient, SftpClientFactory}
 import java.io.*
 import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.util
-import java.util.EnumSet
 import java.util.concurrent.{Executors, TimeUnit}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*
-import scala.util.Using
+import scala.util.{Try, Using}
 
 /**
  * <h1>SSH</h1>
@@ -115,13 +115,16 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
    * @param localPath  The path of the local file to send.
    * @param remotePath The path where the file should be saved on the remote server.
    */
-  def send(localPath: String, remotePath: String): Unit = withSftpClient { client =>
-    val out = client.write(remotePath)
-    try {
-      Files.copy(Paths.get(localPath), out)
-    } finally {
-      out.close()
-    }
+  override final def send(localPath: String, remotePath: String): Boolean = withSftpClient { client =>
+    Try {
+      val out = client.write(remotePath)
+      try {
+        Files.copy(Paths.get(localPath), out)
+        true
+      } finally {
+        out.close()
+      }
+    }.getOrElse(false)
   }
 
   /**
@@ -130,13 +133,16 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
    * @param localFile  The local File object to send.
    * @param remotePath The path where the file should be saved on the remote server.
    */
-  def send(localFile: File, remotePath: String): Unit = withSftpClient { client =>
-    val out = client.write(remotePath)
-    try {
-      Files.copy(localFile.toPath, out)
-    } finally {
-      out.close()
-    }
+  override final def send(localFile: File, remotePath: String): Boolean = withSftpClient { client =>
+    Try {
+      val out = client.write(remotePath)
+      try {
+        Files.copy(localFile.toPath, out)
+        true
+      } finally {
+        out.close()
+      }
+    }.getOrElse(false)
   }
 
   /**
@@ -144,14 +150,18 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
    *
    * @param remotePath The path of the file on the remote server.
    * @param localPath  The path where the file should be saved locally.
+   * @return true if the file was successfully retrieved, false otherwise.
    */
-  def get(remotePath: String, localPath: String): Unit = withSftpClient { client =>
-    val in = client.read(remotePath)
-    try {
-      Files.copy(in, Paths.get(localPath), StandardCopyOption.REPLACE_EXISTING)
-    } finally {
-      in.close()
-    }
+  override final def get(remotePath: String, localPath: String): Boolean = withSftpClient { client =>
+    Try {
+      val in = client.read(remotePath)
+      try {
+        Files.copy(in, Paths.get(localPath), StandardCopyOption.REPLACE_EXISTING)
+        true
+      } finally {
+        in.close()
+      }
+    }.getOrElse(false)
   }
 
   /**
@@ -159,16 +169,38 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
    *
    * @param remoteFile The RemoteFile object representing the file on the remote server.
    * @param localDirPath local path.
-   *
+   * @return true if the file was successfully retrieved, false otherwise.
    */
-  def get(remoteFile: RemoteFile, localDirPath: String): Unit = withSftpClient { client =>
-    val in = client.read(remoteFile.fullPath)
-    try {
-      Files.copy(in, Paths.get(localDirPath + remoteFile.name), StandardCopyOption.REPLACE_EXISTING)
-    } finally {
-      in.close()
-    }
+  override final def get(remoteFile: RemoteFile, localDirPath: String): Boolean = withSftpClient { client =>
+    val localFilePath = Paths.get(localDirPath, remoteFile.name)
+    Try {
+      val in = client.read(remoteFile.fullPath)
+      try {
+        Files.copy(in, localFilePath, StandardCopyOption.REPLACE_EXISTING)
+        true
+      } finally {
+        in.close()
+      }
+    }.getOrElse(false)
   }
+
+  /**
+   * Retrieves multiple files from the remote server asynchronously.
+   *
+   * @param remoteFiles A sequence of RemoteFile objects to retrieve.
+   * @param localDirPath The local directory path to save the files.
+   * @return true if all files were successfully retrieved, false if any file transfer failed.
+   */
+  def get(remoteFiles: Seq[RemoteFile], localDirPath: String)(implicit ec: ExecutionContext): Future[Seq[Try[Boolean]]] = {
+    Future.sequence(
+      remoteFiles.map { remoteFile =>
+        Future {
+          Try(get(remoteFile, localDirPath))
+        }
+      }
+    )
+  }
+
   /**
    * Lists files and directories in the specified path on the remote server.
    *
@@ -253,7 +285,6 @@ class SSH(val host: String, val port: Int, val user: String, val password: Strin
       if (isConnected) {
         try {
           exec("echo 'keep-alive'")
-          println("keep")
         } catch {
           case _: Exception => reconnect()
         }

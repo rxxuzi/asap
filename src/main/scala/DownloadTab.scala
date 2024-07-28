@@ -10,9 +10,7 @@ import util.Downloads
 
 import java.io.File
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
-import scala.util.{Failure, Success}
 
 final class DownloadTab {
   private val listView = new ListView[RemoteFile](Downloads.getDownloadList)
@@ -93,22 +91,21 @@ final class DownloadTab {
 
     disableButtons(true)
 
-    Future {
-      files.zipWithIndex.foreach { case (file, index) =>
-        Downloads.getSSHManager.withSSH { ssh =>
-          ssh.get(file, downloadDir.getAbsolutePath)
-        }
+    Downloads.getSSHManager.withSSH { ssh =>
+      ssh.get(files, downloadDir.getAbsolutePath).foreach { results =>
+        val (successes, failures) = results.partition(_.isSuccess)
+        Platform.runLater(() => updateUIAfterDownload(successes.size, failures.size))
       }
-    }.onComplete {
-      case Success(_) => Platform.runLater(() => {
-        disableButtons(false)
-        Log.info("All selected files downloaded successfully")
-      })
-      case Failure(ex) => Platform.runLater(() => {
-        disableButtons(false)
-        Log.err(s"Download failed: ${ex.getMessage}")
-      })
     }
+  }
+
+  private def updateUIAfterDownload(successCount: Int, failureCount: Int): Unit = {
+    if (failureCount == 0) {
+      Log.info(s"All $successCount files downloaded successfully")
+    } else {
+      Log.warn(s"$successCount files downloaded successfully, $failureCount files failed")
+    }
+    disableButtons(false)
   }
 
   private def removeSelectedFiles(): Unit = {
