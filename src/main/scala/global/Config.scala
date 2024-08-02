@@ -3,7 +3,7 @@ package global
 import com.google.gson.{Gson, GsonBuilder}
 
 import java.io.{FileWriter, PrintWriter}
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import scala.util.{Try, Using}
 
 case class SshConfig(autoConnect: Boolean, configFile: String, keepAlive: Boolean)
@@ -25,8 +25,8 @@ object Config {
   var configPath = "asap.json"
   val defaultLogDir = "log"
   val iconPath = "/png/icon.png"
-  val tmp = "asap-temp"
-  val tmpDir = Files.createTempDirectory(tmp)
+  private val tmp = "asap-temp"
+  val tmpDir: Path = Files.createTempDirectory(tmp)
 
   private lazy val instance: Config = loadConfig(configPath).getOrElse(defaultConfig)
 
