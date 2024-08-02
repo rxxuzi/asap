@@ -13,7 +13,6 @@ object Tree {
     _ =>
       new TextFieldTreeCell[RemoteFile](new StringConverter[RemoteFile]() {
         override def toString(rf: RemoteFile): String = rf.name
-
         override def fromString(string: String): RemoteFile = null
       })
   }
@@ -31,7 +30,7 @@ object Tree {
           currentItem = existingItem
         case None =>
           val newItem = new TreeItem[RemoteFile](RemoteFile(part, currentPath, isDirectory))
-          currentItem.getChildren.add(newItem)
+          insertSorted(currentItem, newItem)
           newItem.setExpanded(false)
           currentItem = newItem
       }
@@ -57,10 +56,7 @@ object Tree {
 
     val treeView = new TreeView[RemoteFile](root)
     treeView.setShowRoot(true)
-    treeView.setCellFactory(_ => new javafx.scene.control.cell.TextFieldTreeCell[RemoteFile](new javafx.util.StringConverter[RemoteFile]() {
-      override def toString(rf: RemoteFile): String = rf.name
-      override def fromString(string: String): RemoteFile = null
-    }))
+    treeView.setCellFactory(createRemoteFileCellFactory())
 
     treeView
   }
@@ -76,9 +72,18 @@ object Tree {
           currentItem = existingItem
         case None =>
           val newItem = new TreeItem[RemoteFile](RemoteFile(part, currentPath, isDirectory = true))
-          currentItem.getChildren.add(newItem)
+          insertSorted(currentItem, newItem)
           currentItem = newItem
       }
+    }
+  }
+
+  private def insertSorted(parent: TreeItem[RemoteFile], newItem: TreeItem[RemoteFile]): Unit = {
+    val insertionIndex = parent.getChildren.asScala.indexWhere(_.getValue.name > newItem.getValue.name)
+    if (insertionIndex >= 0) {
+      parent.getChildren.add(insertionIndex, newItem)
+    } else {
+      parent.getChildren.add(newItem)
     }
   }
 }
