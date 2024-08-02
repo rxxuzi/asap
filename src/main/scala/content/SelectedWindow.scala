@@ -1,5 +1,6 @@
 package content
 
+import content.fcv.LocalFileContentViewer
 import global.Config.getClass
 import global.{Config, Log}
 import javafx.collections.{FXCollections, ObservableList}
@@ -10,9 +11,11 @@ import javafx.scene.image.Image
 import javafx.scene.layout.{HBox, Priority, VBox}
 import javafx.stage.Stage
 import style.Style
+import javafx.application.Platform
 
 import java.io.File
 import scala.jdk.CollectionConverters.*
+import scala.concurrent.ExecutionContext.Implicits.global
 
 final class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList[File] => Unit) extends Stage {
   private val listView = new ListView[File](files)
@@ -41,17 +44,13 @@ final class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList
 
   private var viewer = new LocalFileContentViewer(scene.getWidth * 0.7 * 0.9, scene.getHeight * 0.9)
 
-
   removeButton.setOnAction(_ => {
     val selected: ObservableList[File] = listView.getSelectionModel.getSelectedItems
     if (!selected.isEmpty) {
-      // Create a new list with items that are not selected for removal
       val remainingFiles = files.asScala.filter(file => !selected.contains(file))
-      // Clear the original list and add all remaining files
       files.clear()
       files.addAll(FXCollections.observableArrayList(remainingFiles.asJava))
       updatePreview()
-      // Call onUpdate with a new ObservableList containing the remaining files
       onUpdate(FXCollections.observableArrayList(remainingFiles.asJava))
     }
   })
@@ -67,8 +66,7 @@ final class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList
 
   listView.getSelectionModel.selectedItemProperty().addListener((_, _, newValue) => {
     if (newValue != null) {
-      val contentNode = viewer.viewContent(newValue)
-      preview.setContent(contentNode)
+      updatePreview()
     } else {
       preview.setContent(null)
     }
@@ -106,8 +104,11 @@ final class SelectedWindow(files: ObservableList[File], onUpdate: ObservableList
   private def updatePreview(): Unit = {
     val selectedFile = listView.getSelectionModel.getSelectedItem
     if (selectedFile != null) {
-      val contentNode = viewer.viewContent(selectedFile)
-      preview.setContent(contentNode)
+      viewer.viewContent(selectedFile).foreach { contentNode =>
+        Platform.runLater(() => {
+          preview.setContent(contentNode)
+        })
+      }
     } else {
       preview.setContent(null)
     }

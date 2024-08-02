@@ -1,5 +1,6 @@
 import command.{BuildCommand, SortBy}
-import content.{RemoteFileContentViewer, Tree}
+import content.Tree
+import content.fcv.RemoteFileContentViewer
 import global.Log
 import javafx.application.Platform
 import javafx.geometry.{Insets, Orientation}
